@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject private var flow = FlowController()
+    @StateObject private var appState = AppState()
 
     var body: some View {
         NavigationStack(path: $flow.path) {
@@ -25,5 +26,6 @@ struct RootView: View {
                 }
         }
         .environmentObject(flow)
+        .environmentObject(appState)
     }
 }
