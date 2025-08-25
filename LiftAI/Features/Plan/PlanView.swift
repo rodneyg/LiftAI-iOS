@@ -9,14 +9,15 @@ import SwiftUI
 
 struct PlanView: View {
     @EnvironmentObject var flow: FlowController
+    @EnvironmentObject var appState: AppState
     @State private var loadResult: String = ""
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Text("Plan").font(.title2).bold()
-            Text("Placeholder").foregroundStyle(.secondary)
+            Text("Context: \(appState.context?.rawValue ?? "unknown")")
+                .foregroundStyle(.secondary)
 
-            // Test save/load buttons
             HStack {
                 Button("Save Test Plan") { saveDummy() }
                 Button("Load Test Plan") { loadDummy() }

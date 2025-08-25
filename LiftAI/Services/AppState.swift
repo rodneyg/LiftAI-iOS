@@ -10,4 +10,5 @@ import Combine
 
 final class AppState: ObservableObject {
     @Published var goal: Goal? = nil
+    @Published var context: TrainingContext? = nil
 }
