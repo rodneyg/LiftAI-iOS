@@ -14,6 +14,12 @@ struct PlanView: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            if let gp = appState.gymProfile {
+                Text("Equipment count: \(gp.equipments.count)")
+                    .font(.subheadline)
+                WrapChips(items: gp.equipments.map(\.rawValue))
+            }
+            
             Text("Plan").font(.title2).bold()
             Text("Context: \(appState.context?.rawValue ?? "unknown")")
                 .foregroundStyle(.secondary)
