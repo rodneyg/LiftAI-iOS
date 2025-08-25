@@ -10,8 +10,6 @@ import SwiftUI
 @main
 struct LiftAIApp: App {
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+        WindowGroup { RootView() }
     }
 }
