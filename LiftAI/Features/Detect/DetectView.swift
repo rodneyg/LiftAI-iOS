@@ -15,58 +15,62 @@ struct DetectView: View {
     @StateObject private var vm = DetectViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Detect equipment").font(.title2).bold()
-            Text("Analyze your gym photos to identify available machines and free weights.")
-                .font(.footnote).foregroundStyle(.secondary)
+         VStack(alignment: .leading, spacing: 16) {
+             Text("Detect equipment").font(.title2).bold()
+             if appState.offlineOnly {
+                 Text("Offline mode: using sample detection").font(.footnote).foregroundStyle(.secondary)
+             }
 
-            Toggle("Use sample gym (no network)", isOn: $vm.useSampleGym)
+             Toggle("Use sample gym (no network)", isOn: $vm.useSampleGym)
+                 .disabled(appState.offlineOnly)
 
-            HStack {
-                Button {
-                    Task {
-                        if vm.useSampleGym {
-                            await vm.runDetection()
-                        } else {
-                            await vm.runDetection(with: appState.capturedImages)
-                        }
-                    }
-                } label: {
-                    if vm.isLoading { ProgressView().padding(.horizontal, 8) }
-                    else { Label("Detect equipment", systemImage: "wand.and.stars") }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(vm.isLoading)
+             HStack {
+                 Button {
+                     vm.forceOffline = appState.offlineOnly
+                     Task {
+                         if vm.useSampleGym || appState.offlineOnly {
+                             await vm.runDetection()
+                         } else {
+                             await vm.runDetection(with: appState.capturedImages)
+                         }
+                     }
+                 } label: {
+                     if vm.isLoading { ProgressView().padding(.horizontal, 8) }
+                     else { Label("Detect equipment", systemImage: "wand.and.stars") }
+                 }
+                 .buttonStyle(.borderedProminent)
+                 .disabled(vm.isLoading)
 
-                if let err = vm.error {
-                    Text(err).font(.footnote).foregroundStyle(.red)
-                }
-            }
+                 if let err = vm.error {
+                     Text(err).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
+                 }
+             }
 
-            if !vm.equipments.isEmpty {
-                Text("Detected: \(vm.equipments.count)").font(.subheadline).bold()
-                WrapChips(items: vm.equipments.map(\.rawValue))
-            } else {
-                Text("No equipment detected yet.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
+             if !vm.equipments.isEmpty {
+                 Text("Detected: \(vm.equipments.count)").font(.subheadline).bold()
+                 WrapChips(items: vm.equipments.map(\.rawValue))
+             } else {
+                 Text("No equipment detected yet.")
+                     .font(.footnote).foregroundStyle(.secondary)
+             }
 
-            Spacer()
+             Spacer()
 
-            HStack {
-                Button("Back") { flow.path.removeLast() }
-                Spacer()
-                Button("Continue") {
-                    appState.gymProfile = GymProfile(equipments: vm.equipments)
-                    flow.advance(from: .detect)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(vm.equipments.isEmpty)
-            }
-        }
-        .padding()
-        .navigationTitle("Detect")
-    }
+             HStack {
+                 Button("Back") { flow.path.removeLast() }
+                 Spacer()
+                 Button("Continue") {
+                     appState.gymProfile = GymProfile(equipments: vm.equipments)
+                     flow.advance(from: .detect)
+                 }
+                 .buttonStyle(.borderedProminent)
+                 .disabled(vm.equipments.isEmpty)
+             }
+         }
+         .padding()
+         .navigationTitle("Detect")
+         .onAppear { vm.forceOffline = appState.offlineOnly }
+     }
 }
 
 /// Simple flow layout

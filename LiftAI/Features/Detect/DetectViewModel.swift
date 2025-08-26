@@ -19,15 +19,16 @@ final class DetectViewModel: ObservableObject {
     @Published var useSampleGym = true
 
     var service: OpenAIService = OpenAIServiceHTTP()  // switched default to real
+    var forceOffline: Bool = false  // set from app state
 
     func runDetection(with images: [UIImage] = []) async {
         error = nil; isLoading = true
         defer { isLoading = false }
 
-        if useSampleGym {
+        if useSampleGym || forceOffline {
             try? await Task.sleep(nanoseconds: 300_000_000)
             equipments = sampleEquipments
-            Log.detect.info("Sample gym used. equipments=\(self.equipments.count)")
+            Log.detect.info("Sample/Offline gym used. equipments=\(self.equipments.count)")
             return
         }
 

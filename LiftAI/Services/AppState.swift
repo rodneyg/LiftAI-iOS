@@ -14,4 +14,12 @@ final class AppState: ObservableObject {
     @Published var context: TrainingContext? = nil
     @Published var gymProfile: GymProfile? = nil
     @Published var capturedImages: [UIImage] = []
+    @Published var offlineOnly = false
+
+    func resetAll() {
+        goal = nil
+        context = nil
+        gymProfile = nil
+        capturedImages = []
+    }
 }
