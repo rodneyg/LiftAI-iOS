@@ -24,26 +24,27 @@ struct DetectView: View {
 
             HStack {
                 Button {
-                    Task { await vm.runDetection() }
-                } label: {
-                    if vm.isLoading {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .padding(.horizontal, 8)
-                    } else {
-                        Label("Detect equipment", systemImage: "wand.and.stars")
+                    Task {
+                        if vm.useSampleGym {
+                            await vm.runDetection()
+                        } else {
+                            await vm.runDetection(with: appState.capturedImages)
+                        }
                     }
+                } label: {
+                    if vm.isLoading { ProgressView().padding(.horizontal, 8) }
+                    else { Label("Detect equipment", systemImage: "wand.and.stars") }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(vm.isLoading)
+
                 if let err = vm.error {
                     Text(err).font(.footnote).foregroundStyle(.red)
                 }
             }
 
             if !vm.equipments.isEmpty {
-                Text("Detected: \(vm.equipments.count)")
-                    .font(.subheadline).bold()
+                Text("Detected: \(vm.equipments.count)").font(.subheadline).bold()
                 WrapChips(items: vm.equipments.map(\.rawValue))
             } else {
                 Text("No equipment detected yet.")

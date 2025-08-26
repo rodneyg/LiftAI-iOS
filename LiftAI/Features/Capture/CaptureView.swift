@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CaptureView: View {
     @EnvironmentObject var flow: FlowController
+    @EnvironmentObject var appState: AppState
     @StateObject private var vm = CaptureViewModel()
 
     @State private var showCamera = false
@@ -64,9 +65,12 @@ struct CaptureView: View {
             HStack {
                 Button("Back") { flow.path.removeLast() }
                 Spacer()
-                Button("Continue") { flow.advance(from: .capture) }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!vm.canContinue)
+                Button("Continue") {
+                    appState.capturedImages = vm.photos.map(\.image)
+                    flow.advance(from: .capture)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!vm.canContinue)
             }
         }
         .padding()
