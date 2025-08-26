@@ -11,18 +11,34 @@ struct PlanView: View {
     @EnvironmentObject var flow: FlowController
     @EnvironmentObject var appState: AppState
     @State private var loadResult: String = ""
+    @State private var plan: Plan? = nil
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Plan").font(.title2).bold()
+            Text("Context: \(appState.context?.rawValue ?? "unknown")").foregroundStyle(.secondary)
+
             if let gp = appState.gymProfile {
-                Text("Equipment count: \(gp.equipments.count)")
-                    .font(.subheadline)
+                Text("Equipment count: \(gp.equipments.count)").font(.subheadline)
                 WrapChips(items: gp.equipments.map(\.rawValue))
             }
-            
-            Text("Plan").font(.title2).bold()
-            Text("Context: \(appState.context?.rawValue ?? "unknown")")
-                .foregroundStyle(.secondary)
+
+            Button("Generate Plan") {
+                guard let goal = appState.goal, let ctx = appState.context else { return }
+                let eq = appState.gymProfile?.equipments ?? []
+                plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
+            }
+            .buttonStyle(.borderedProminent)
+
+            if let plan {
+                ForEach(plan.workouts) { w in
+                    Text("• \(w.title)").font(.body)
+                }
+            } else {
+                Text("No plan yet. Tap Generate.").font(.footnote).foregroundStyle(.secondary)
+            }
+
+            Divider().padding(.vertical, 4)
 
             HStack {
                 Button("Save Test Plan") { saveDummy() }
@@ -30,6 +46,7 @@ struct PlanView: View {
             }
             Text(loadResult).font(.footnote).foregroundStyle(.secondary)
 
+            Spacer()
             Button("Restart") { flow.reset() }
         }
         .padding()
