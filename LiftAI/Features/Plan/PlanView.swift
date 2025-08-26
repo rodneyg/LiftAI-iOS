@@ -31,8 +31,10 @@ struct PlanView: View {
             .buttonStyle(.borderedProminent)
 
             if let plan {
-                ForEach(plan.workouts) { w in
-                    Text("• \(w.title)").font(.body)
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(plan.workouts) { w in
+                        PlanCard(workout: w)
+                    }
                 }
             } else {
                 Text("No plan yet. Tap Generate.").font(.footnote).foregroundStyle(.secondary)
