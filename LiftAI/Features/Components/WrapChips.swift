@@ -17,13 +17,14 @@ public struct WrapChips: View {
     }
 
     public var body: some View {
-        FlexibleFlow(data: items, spacing: spacing, alignment: .leading) { text in
-            Text(text)
-                .font(.caption)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(Capsule().fill(Color.secondary.opacity(0.15)))
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: spacing)], spacing: spacing) {
+            ForEach(items, id: \.self) { text in
+                Text(text)
+                    .font(.caption)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Capsule().fill(Color.secondary.opacity(0.15)))
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
