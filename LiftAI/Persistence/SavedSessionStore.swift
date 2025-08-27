@@ -9,6 +9,7 @@ import Foundation
 
 /// Simple JSON-backed store using UserDefaults.
 /// Chosen over @AppStorage here so it can be used from non-View types safely.
+
 final class SavedSessionStore {
     static let shared = SavedSessionStore()
     private init() {}
@@ -23,7 +24,13 @@ final class SavedSessionStore {
     func load() -> SavedSession? {
         guard let str = UserDefaults.standard.string(forKey: key),
               let data = str.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(SavedSession.self, from: data)
+        do {
+            return try JSONDecoder().decode(SavedSession.self, from: data)
+        } catch {
+            // Defensive: clear corrupt payload
+            UserDefaults.standard.removeObject(forKey: key)
+            return nil
+        }
     }
 
     func save(_ s: SavedSession) {

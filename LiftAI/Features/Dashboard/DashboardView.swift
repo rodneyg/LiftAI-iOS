@@ -85,6 +85,7 @@ struct DashboardView: View {
 
                             Button(role: .destructive) {
                                 appState.clearSavedSession()
+                                flow.goTo(.goal)
                             } label: {
                                 Label("Start over", systemImage: "arrow.counterclockwise")
                                     .font(.subheadline.weight(.semibold))

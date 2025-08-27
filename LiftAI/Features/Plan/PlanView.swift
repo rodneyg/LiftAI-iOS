@@ -56,6 +56,17 @@ struct PlanView: View {
                     }
                     .disabled(isLoading)
                     .foregroundColor(.primary)
+                    
+                    Button(role: .destructive) {
+                        appState.clearSavedSession()
+                        flow.goTo(.goal)
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.body.weight(.semibold))
+                            .padding(8)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Start over")
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
