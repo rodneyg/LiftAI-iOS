@@ -30,7 +30,11 @@ struct DetectView: View {
 
             if !vm.equipments.isEmpty {
                 Text("Detected: \(vm.equipments.count)").font(.subheadline).bold()
-                WrapChips(items: vm.equipments.map(\.rawValue))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+                    ForEach(vm.equipments, id: \.self) { eq in
+                        EquipmentTile(equipment: eq)
+                    }
+                }
             } else if !vm.isLoading && vm.error == nil {
                 Text("No equipment detected yet.").font(.footnote).foregroundStyle(.secondary)
             }
