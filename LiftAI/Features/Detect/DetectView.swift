@@ -7,46 +7,37 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct DetectView: View {
     @EnvironmentObject var flow: FlowController
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = DetectViewModel()
     @State private var shouldAutoRun = true
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Detect equipment").font(.title2).bold()
             if appState.offlineOnly {
                 Text("Offline mode: using sample detection").font(.footnote).foregroundStyle(.secondary)
             }
-            
+
             Toggle("Use sample gym (no network)", isOn: $vm.useSampleGym)
                 .disabled(appState.offlineOnly)
-            
+
             if vm.isLoading {
-                HStack(spacing: 8) {
-                    ProgressView("Analyzing photos…")
-                    Spacer()
-                }
+                HStack(spacing: 8) { ProgressView("Analyzing photos…"); Spacer() }
             } else if let err = vm.error {
                 Text(err).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
             }
-            
+
             if !vm.equipments.isEmpty {
                 Text("Detected: \(vm.equipments.count)").font(.subheadline).bold()
                 WrapChips(items: vm.equipments.map(\.rawValue))
             } else if !vm.isLoading && vm.error == nil {
-                Text("No equipment detected yet.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                Text("No equipment detected yet.").font(.footnote).foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
+
             HStack {
-                Button("Back") { flow.path.removeLast() }
-                    .disabled(vm.isLoading)
                 Spacer()
                 Button("Continue") {
                     appState.gymProfile = GymProfile(equipments: vm.equipments)
@@ -57,22 +48,21 @@ struct DetectView: View {
             }
         }
         .padding()
-        .navigationTitle("Detect")
+        .navigationTitle("Detect equipment")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             vm.forceOffline = appState.offlineOnly
             if shouldAutoRun {
                 shouldAutoRun = false
                 Task {
-                    if vm.useSampleGym || appState.offlineOnly {
-                        await vm.runDetection()
-                    } else {
-                        await vm.runDetection(with: appState.capturedImages)
-                    }
+                    if vm.useSampleGym || appState.offlineOnly { await vm.runDetection() }
+                    else { await vm.runDetection(with: appState.capturedImages) }
                 }
             }
         }
     }
 }
+
 
 /// Simple flow layout
 private struct FlexibleView<Data: Collection, Content: View>: View where Data.Element: Hashable {

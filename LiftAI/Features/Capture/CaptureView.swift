@@ -17,30 +17,20 @@ struct CaptureView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Add gym photos").font(.title2).bold()
             Text("Add 3–12 photos. Different angles and areas recommended.")
                 .font(.footnote).foregroundStyle(.secondary)
 
             HStack {
-                Button {
-                    showCamera = true
-                } label: {
-                    Label("Take photo", systemImage: "camera")
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    showLibrary = true
-                } label: {
-                    Label("Choose from library", systemImage: "photo.on.rectangle.angled")
-                }
-                .buttonStyle(.bordered)
-                .disabled(vm.photos.count >= vm.maxCount)
+                Button { showCamera = true } label: { Label("Take photo", systemImage: "camera") }
+                    .buttonStyle(.borderedProminent)
+                Button { showLibrary = true } label: { Label("Choose from library", systemImage: "photo.on.rectangle.angled") }
+                    .buttonStyle(.bordered)
+                    .disabled(vm.photos.count >= vm.maxCount)
             }
 
             Text("Selected: \(vm.photos.count)/\(vm.maxCount)")
                 .font(.footnote)
-                .foregroundStyle(vm.canContinue ? AnyShapeStyle(.secondary) : AnyShapeStyle(.red))
+                .foregroundColor(vm.canContinue ? .secondary : .red)
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
@@ -52,18 +42,13 @@ struct CaptureView: View {
                                 .frame(height: 100)
                                 .clipped()
                                 .cornerRadius(8)
-                            Button {
-                                vm.remove(p.id)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill").padding(4)
-                            }
+                            Button { vm.remove(p.id) } label: { Image(systemName: "xmark.circle.fill").padding(4) }
                         }
                     }
                 }
             }
 
             HStack {
-                Button("Back") { flow.path.removeLast() }
                 Spacer()
                 Button("Continue") {
                     appState.capturedImages = vm.photos.map(\.image)
@@ -74,17 +59,14 @@ struct CaptureView: View {
             }
         }
         .padding()
+        .navigationTitle("Add photos")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showCamera) {
-            CameraPicker(isPresented: $showCamera) { img in
-                vm.add(img)
-            }
+            CameraPicker(isPresented: $showCamera) { img in vm.add(img) }
         }
         .sheet(isPresented: $showLibrary) {
             let remaining = vm.maxCount - vm.photos.count
-            LibraryPicker(selectionLimit: remaining) { imgs in
-                imgs.forEach { vm.add($0) }
-            }
+            LibraryPicker(selectionLimit: remaining) { imgs in imgs.forEach { vm.add($0) } }
         }
-        .navigationTitle("Capture")
     }
 }

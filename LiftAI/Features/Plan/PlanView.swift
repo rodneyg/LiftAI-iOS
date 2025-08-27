@@ -14,17 +14,14 @@ struct PlanView: View {
     @State private var isLoading = false
     @State private var error: String? = nil
     @State private var workouts: [Workout] = []
-    private var planService: PlanService { OpenAIServiceHTTP() } // fallback to mock in previews
+    private var planService: PlanService { OpenAIServiceHTTP() }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Your plan").font(.title2).bold()
-
                 if let g = appState.goal {
                     Text("Goal: \(friendly(g))").foregroundStyle(.secondary)
                 }
-
                 if let gp = appState.gymProfile, !gp.equipments.isEmpty {
                     Text("Detected equipment").font(.subheadline).bold()
                     WrapChips(items: gp.equipments.map { friendly($0) })
@@ -46,20 +43,18 @@ struct PlanView: View {
                 }
 
                 if let error { Text(error).font(.footnote).foregroundStyle(.red).textSelection(.enabled) }
-
                 if workouts.isEmpty && !isLoading {
                     Text("No plan yet. Tap “Build my plan”.").font(.footnote).foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(workouts) { w in
-                        PlanCard(workout: w)
-                    }
+                    ForEach(workouts) { w in PlanCard(workout: w) }
                 }
             }
             .padding()
+            .padding(.bottom, 20)
         }
-        .navigationTitle("Plan")
+        .navigationTitle("Your plan")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -68,22 +63,16 @@ struct PlanView: View {
         isLoading = true
         Task {
             defer { isLoading = false }
-            guard let goal = appState.goal, let ctx = appState.context else {
-                error = "Missing goal or context"; return
-            }
+            guard let goal = appState.goal, let ctx = appState.context else { error = "Missing goal or context"; return }
             let eq = appState.gymProfile?.equipments ?? []
-
             if appState.offlineOnly {
-                // Fallback deterministic
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = plan.workouts
                 return
             }
-
             do {
                 workouts = try await planService.generateWorkouts(goal: goal, context: ctx, equipments: eq)
                 if workouts.isEmpty {
-                    // fallback if model returns empty
                     let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                     workouts = plan.workouts
                 }

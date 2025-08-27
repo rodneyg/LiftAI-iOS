@@ -14,7 +14,7 @@ struct GoalView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Select your goal").font(.title2).bold()
+            Text("Choose your goal").font(.title2).bold()
 
             ForEach(Goal.allCases, id: \.self) { g in
                 Button {
@@ -44,11 +44,11 @@ struct GoalView: View {
 
     private func label(for goal: Goal) -> String {
         switch goal {
-        case .strength: return "Strength"
-        case .hypertrophy: return "Hypertrophy"
-        case .fatLoss: return "Fat Loss"
-        case .endurance: return "Endurance"
-        case .mobility: return "Mobility"
+        case .strength: return "Build strength"
+        case .hypertrophy: return "Build muscle"
+        case .fatLoss: return "Lose fat"
+        case .endurance: return "Improve endurance"
+        case .mobility: return "Improve mobility"
         }
     }
 }
