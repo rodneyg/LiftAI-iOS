@@ -15,6 +15,7 @@ protocol OpenAIService {
     func detectEquipment(from images: [UIImage]) async throws -> [Equipment]
 }
 
+// Mock stays unchanged
 final class OpenAIServiceMock: OpenAIService {
     private let result: [Equipment]
     init(result: [Equipment] = [.squatRack, .barbell, .benchFlat, .cableMachine, .latPulldown, .dumbbells]) {
@@ -52,28 +53,26 @@ final class OpenAIServiceHTTP: OpenAIService {
         self.model = model
     }
 
+    // MARK: - Equipment detection
+
     func detectEquipment(from images: [UIImage]) async throws -> [Equipment] {
         guard !apiKey.isEmpty else { throw Err.noApiKey }
 
         let dataUrls = images.prefix(6).map { "data:image/jpeg;base64,\(Self.jpegBase64($0, maxDim: 1024, quality: 0.7))" }
         Log.net.info("OpenAI detect start. images=\(dataUrls.count) model=\(self.model, privacy: .public)")
 
-        // System guardrails to prevent “full list” hallucination
         let systemText = """
         You see ONLY these photos. Identify gym equipment that is CLEARLY VISIBLE.
-        Return STRICT JSON:
-
-        { "equipments": ["<label>", ...] }
-
+        Return STRICT JSON: { "equipments": ["<label>", ...] }
         Rules:
-        - Choose labels ONLY from this list (case-sensitive): [\(Equipment.allCases.map{$0.rawValue}.joined(separator: ", "))]
+        - Labels ONLY from (case-sensitive): [\(Equipment.allCases.map{$0.rawValue}.joined(separator: ", "))]
         - Include an item ONLY if unambiguous and mostly in-frame.
-        - NO guesses. NO duplicates. If uncertain, omit.
+        - No guesses. No duplicates. If uncertain, omit.
         - If nothing is visible, return { "equipments": [] }.
         """
 
         let userContents: [[String: Any]] =
-            [["type": "text", "text": "Photos to analyze follow. Output JSON only."]]
+            [["type": "text", "text": "Photos follow. Output JSON only."]]
             + dataUrls.map { ["type": "image_url", "image_url": ["url": $0]] }
 
         let body: [String: Any] = [
@@ -141,7 +140,8 @@ final class OpenAIServiceHTTP: OpenAIService {
     }
 }
 
-/// Parsing helper used by tests and any real implementation later.
+// MARK: - Parse helper
+
 enum DetectionParser {
     static func parse(_ data: Data) throws -> [Equipment] {
         let resp = try JSONDecoder().decode(DetectionResponse.self, from: data)
@@ -156,10 +156,13 @@ enum DetectionParser {
     }
 }
 
+// MARK: - Plan generation with post-filter
+
 extension OpenAIServiceHTTP: PlanService {
     func generateWorkouts(goal: Goal, context: TrainingContext, equipments: [Equipment]) async throws -> [Workout] {
         guard !apiKey.isEmpty else { throw Err.noApiKey }
 
+        let allowedSet = Set(equipments)
         let equipList = equipments.map { $0.rawValue }.joined(separator: ", ")
         let goalText: String = {
             switch goal {
@@ -172,21 +175,29 @@ extension OpenAIServiceHTTP: PlanService {
         }()
 
         let allowed = Equipment.allCases.map { $0.rawValue }.joined(separator: ", ")
+
+        let systemText = """
+        HARD RULES:
+        - Use only equipment the user has: [\(equipList)]. Equipment not in this list is forbidden.
+        - If an exercise requires unavailable equipment, replace it with a bodyweight or available-equipment alternative.
+        - Keep JSON strictly to schema. No prose. No extra fields.
+        """
+
         let prompt = """
-        You are a certified strength coach. Create EXACTLY 3 distinct workouts tailored to the user.
+        You are a certified strength coach. Create EXACTLY 3 distinct workouts for the user.
 
         Inputs:
         - Goal: \(goalText)
         - Location: \(context == .home ? "Home" : "Gym")
-        - Available equipment (allowed values only): [\(equipList)]
-        - Allowed equipment labels (MUST use these strings or null): [\(allowed)]
+        - Available equipment (only these may be used): [\(equipList)]
+        - Allowed equipment labels (strings or null): [\(allowed)]
 
         Rules:
         - 4–6 exercises per workout.
         - Each exercise MUST include: name (string), primary (string), equipment (one of allowed labels or null), tempo (string or null), sets (int), reps (int).
         - Session length 30–60 minutes (estMinutes int).
-        - Use only available equipment when specified. Prefer compound lifts when possible.
-        - Respond ONLY with JSON in this exact shape:
+        - Prefer compound lifts when possible. If equipment is limited, bias to bodyweight and tempo control for stimulus.
+        - Respond ONLY with JSON:
         {
           "workouts": [
             {
@@ -198,15 +209,14 @@ extension OpenAIServiceHTTP: PlanService {
             }
           ]
         }
-        - No extra fields. No prose. No markdown.
         """
 
         let body: [String: Any] = [
-            "model": self.model, // default gpt-4o
+            "model": self.model,
+            "temperature": 0.2,
             "messages": [
-                ["role": "user", "content": [
-                    ["type": "text", "text": prompt]
-                ]]
+                ["role": "system", "content": [["type": "text", "text": systemText]]],
+                ["role": "user", "content": [["type": "text", "text": prompt]]]
             ],
             "response_format": ["type": "json_object"]
         ]
@@ -230,16 +240,43 @@ extension OpenAIServiceHTTP: PlanService {
             struct Choice: Decodable { struct Msg: Decodable { let content: String }; let message: Msg }
             let choices: [Choice]
         }
+
         do {
             let root = try JSONDecoder().decode(Root.self, from: data)
             guard let jsonString = root.choices.first?.message.content else { throw Err.empty }
             Log.net.info("OpenAI plan raw: \(jsonString, privacy: .public)")
-            let workouts = try PlanParser.parse(Data(jsonString.utf8))
+            var workouts = try PlanParser.parse(Data(jsonString.utf8))
+
+            // Post-filter: drop movements that use unavailable equipment.
+            workouts = filterWorkoutsToAllowed(workouts, allowed: allowedSet)
+
+            // If model violated constraints and everything got filtered, fall back to deterministic engine constrained to allowed.
+            if workouts.allSatisfy({ $0.blocks.flatMap{$0}.isEmpty }) {
+                Log.net.error("Plan post-filter removed all exercises; falling back to PlanEngine.")
+                let fallback = PlanEngine.generate(goal: goal, context: context, equipments: Array(allowedSet))
+                workouts = fallback.workouts
+            }
+
             Log.net.info("OpenAI plan parsed workouts=\(workouts.count)")
             return workouts
         } catch {
             Log.net.error("OpenAI plan decode failure: \(error.localizedDescription, privacy: .public)")
             throw Err.decode
+        }
+    }
+
+    // Filter helpers
+    private func filterWorkoutsToAllowed(_ ws: [Workout], allowed: Set<Equipment>) -> [Workout] {
+        ws.map { w in
+            var newBlocks: [[Movement]] = []
+            for block in w.blocks {
+                let kept = block.filter { m in
+                    guard let eq = m.equipment else { return true } // bodyweight allowed
+                    return allowed.contains(eq)
+                }
+                if !kept.isEmpty { newBlocks.append(kept) }
+            }
+            return Workout(id: w.id, title: w.title, blocks: newBlocks, estMinutes: w.estMinutes)
         }
     }
 }
