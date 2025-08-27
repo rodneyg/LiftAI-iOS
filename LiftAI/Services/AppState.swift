@@ -6,20 +6,53 @@
 //
 
 import Foundation
-import Combine
 import UIKit
+import Combine
 
 final class AppState: ObservableObject {
-    @Published var goal: Goal? = nil
-    @Published var context: TrainingContext? = nil
-    @Published var gymProfile: GymProfile? = nil
+    // Cross-step state
+    @Published var goal: Goal?
+    @Published var context: TrainingContext?
     @Published var capturedImages: [UIImage] = []
-    @Published var offlineOnly = false
+    @Published var gymProfile: GymProfile?
+    @Published var offlineOnly: Bool = false
 
-    func resetAll() {
+    // Cached workouts for instant render from Dashboard
+    @Published var cachedWorkouts: [Workout]? = nil
+
+    // Saved session accessor
+    var savedSession: SavedSession? {
+        SavedSessionStore.shared.load()
+    }
+
+    // Persist the current session to storage
+    func saveCurrentSession(workouts: [Workout]) {
+        guard let goal = goal, let context = context else { return }
+        let equipments = gymProfile?.equipments ?? []
+        let session = SavedSession(
+            savedAt: Date(),
+            goal: goal,
+            context: context,
+            equipments: equipments,
+            workouts: workouts
+        )
+        SavedSessionStore.shared.save(session)
+        cachedWorkouts = workouts
+    }
+
+    // Clear persisted session and in-memory state
+    func clearSavedSession() {
+        SavedSessionStore.shared.clear()
         goal = nil
         context = nil
         gymProfile = nil
         capturedImages = []
+        cachedWorkouts = nil
+    }
+
+    // Back-compat for SettingsSheet
+    func resetAll() {
+        clearSavedSession()
+        offlineOnly = false
     }
 }
