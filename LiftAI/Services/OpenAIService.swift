@@ -34,7 +34,7 @@ final class OpenAIServiceHTTP: OpenAIService {
         case badStatus(Int, String)
         case empty
         case decode
-
+        
         var errorDescription: String? {
             switch self {
             case .noApiKey: return "Missing API key"
@@ -47,69 +47,70 @@ final class OpenAIServiceHTTP: OpenAIService {
     
     private let apiKey: String
     private let model: String
-
+    
     init(apiKey: String = Secrets.openAIKey, model: String = "gpt-4o") {
         self.apiKey = apiKey
         self.model = model
     }
-
+    
     func detectEquipment(from images: [UIImage]) async throws -> [Equipment] {
         guard !apiKey.isEmpty else { throw Err.noApiKey }
-
+        
         let dataUrls = images.prefix(6).map { "data:image/jpeg;base64,\(Self.jpegBase64($0, maxDim: 1024, quality: 0.7))" }
         Log.net.info("OpenAI detect start. images=\(dataUrls.count) model=\(self.model, privacy: .public)")
-
+        
         let contents: [[String: Any]] =
-            [["type": "text", "text": Self.promptAllowed]] +
-            dataUrls.map { ["type": "image_url", "image_url": ["url": $0]] }
-
+        [["type": "text", "text": Self.promptAllowed]] +
+        dataUrls.map { ["type": "image_url", "image_url": ["url": $0]] }
+        
         let body: [String: Any] = [
             "model": model,  // default "gpt-4o"
             "messages": [["role": "user", "content": contents]],
             "response_format": ["type": "json_object"]
         ]
-
+        
         var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
         req.httpMethod = "POST"
         req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
-
+        
         let (data, resp) = try await URLSession.shared.data(for: req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
-
+        
         guard code == 200 else {
             let server = (try? JSONDecoder().decode(APIError.self, from: data))?.error?.message
-                ?? String(data: data, encoding: .utf8)
-                ?? ""
+            ?? String(data: data, encoding: .utf8)
+            ?? ""
             Log.net.error("OpenAI bad status \(code). server='\(server, privacy: .public)'")
             throw Err.badStatus(code, server.trimmingCharacters(in: .whitespacesAndNewlines))
         }
-
+        
         struct Root: Decodable {
             struct Choice: Decodable { struct Msg: Decodable { let content: String }; let message: Msg }
             let choices: [Choice]
         }
-
+        
         do {
             let root = try JSONDecoder().decode(Root.self, from: data)
             guard let jsonString = root.choices.first?.message.content else { throw Err.empty }
             Log.net.debug("OpenAI content prefix: \(String(jsonString.prefix(120)), privacy: .public)")
             Log.net.info("OpenAI raw content: \(jsonString, privacy: .public)")
             let equipments = try DetectionParser.parse(Data(jsonString.utf8))
+            Log.net.info("Detection counts: parsed=\(equipments.count)")
             return equipments
         } catch {
             Log.net.error("OpenAI decode failure: \(error.localizedDescription, privacy: .public)")
             throw Err.decode
         }
     }
-
+    
     private static func jpegBase64(_ img: UIImage, maxDim: CGFloat, quality: CGFloat) -> String {
         let resized = resize(img, maxDim: maxDim)
         let data = resized.jpegData(compressionQuality: quality) ?? Data()
         return data.base64EncodedString()
     }
-
+    
     private static func resize(_ image: UIImage, maxDim: CGFloat) -> UIImage {
         let size = image.size
         let scale = min(1, maxDim / max(size.width, size.height))
@@ -121,23 +122,19 @@ final class OpenAIServiceHTTP: OpenAIService {
         UIGraphicsEndImageContext()
         return out
     }
-
+    
     private static let promptAllowed = """
-You identify gym equipment from photos. Output ONLY JSON:
-{ "equipments": [ "<name>", ... ] }
-
-Allowed names ONLY:
-[barbell, squatRack, smithMachine, cableMachine, latPulldown, legPress,
- dumbbells, kettlebells, benchFlat, benchIncline, pullupBar,
- treadmill, rower, bike, stairClimber, trapBar, assistedDipChin,
- pecDeck, hackSquat, preacherCurl, hipAbductor, hipAdductor,
- calfRaise, landmine, sled, pulleySingle]
-
-Rules:
-- If uncertain, omit.
-- No duplicates.
-- No extra fields.
-"""
+    Identify gym equipment visible in the images.
+    
+    Respond ONLY with JSON:
+    { "equipments": ["<label>", ...] }
+    
+    Constraints:
+    - Labels MUST be chosen from this list exactly (case-sensitive): [\(Equipment.allCases.map{$0.rawValue}.joined(separator: ", "))]
+    - Use the most specific visible label (e.g., 'benchIncline' over 'benchFlat' if the incline is obvious).
+    - No duplicates. Omit items if uncertain.
+    - If nothing is confidently detected, return { "equipments": [] }.
+    """
 }
 
 /// Parsing helper used by tests and any real implementation later.

@@ -35,7 +35,7 @@ final class DetectViewModel: ObservableObject {
         do {
             let eq = try await service.detectEquipment(from: images)
             equipments = eq
-            Log.detect.info("Detection success. equipments=\(eq.count)")
+            Log.detect.info("Detection success. equipments=\(eq.map{$0.rawValue}.joined(separator: ","), privacy: .public)")
         } catch {
             equipments = []
             let err = error

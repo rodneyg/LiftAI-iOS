@@ -48,7 +48,8 @@ private struct MovementRow: View {
                     Chip(text: m.primary)
                     if let s = m.sets, let r = m.reps { Chip(text: "\(s)×\(r)") }
                     if let t = m.tempo { Chip(text: t) }
-                }.font(.caption)
+                }
+                .font(.caption)
             }
             Spacer()
         }

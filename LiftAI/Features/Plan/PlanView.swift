@@ -48,11 +48,13 @@ struct PlanView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(workouts) { w in PlanCard(workout: w) }
+                    ForEach(workouts) { w in
+                        PlanCard(workout: w)
+                    }
                 }
             }
             .padding()
-            .padding(.bottom, 20)
+            .padding(.bottom, 32)   // ensures scroll safe zone
         }
         .navigationTitle("Your plan")
         .navigationBarTitleDisplayMode(.inline)
