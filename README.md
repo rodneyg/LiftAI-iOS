@@ -4,12 +4,16 @@
 
 LiftAI is an intelligent iOS fitness app that creates personalized workout plans using artificial intelligence. Simply set your fitness goals, snap photos of your available equipment, and let AI generate customized workouts tailored specifically for you.
 
-![IMG_3347](https://github.com/user-attachments/assets/a3af76f0-4940-4adc-99d6-f95134df32f1)
-![IMG_3346](https://github.com/user-attachments/assets/386f5b0f-84ee-481d-b8c3-b92bcfada516)
-![IMG_3345](https://github.com/user-attachments/assets/c29fa60b-ff51-464a-8b49-13b431142ab7)
-![IMG_3344](https://github.com/user-attachments/assets/9207390f-c369-40b5-8d42-16621cc400b4)
-![IMG_3343](https://github.com/user-attachments/assets/68b612dc-d494-4cb7-973b-042c4770557f)
-![IMG_3342](https://github.com/user-attachments/assets/7315010d-94ed-47f9-a17a-3fd957f6ff6a)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a3af76f0-4940-4adc-99d6-f95134df32f1" width="200" alt="Goal Selection"/>
+  <img src="https://github.com/user-attachments/assets/386f5b0f-84ee-481d-b8c3-b92bcfada516" width="200" alt="Training Context"/>
+  <img src="https://github.com/user-attachments/assets/c29fa60b-ff51-464a-8b49-13b431142ab7" width="200" alt="Equipment Capture"/>
+</p>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/9207390f-c369-40b5-8d42-16621cc400b4" width="200" alt="AI Detection"/>
+  <img src="https://github.com/user-attachments/assets/68b612dc-d494-4cb7-973b-042c4770557f" width="200" alt="Workout Plan"/>
+  <img src="https://github.com/user-attachments/assets/7315010d-94ed-47f9-a17a-3fd957f6ff6a" width="200" alt="Dashboard"/>
+</p>
 
 
 ![iOS](https://img.shields.io/badge/iOS-15.0+-blue)
@@ -45,7 +49,7 @@ LiftAI is an intelligent iOS fitness app that creates personalized workout plans
 
 ## 🎬 Screenshots
 
-*Screenshots showcasing the beautiful UI and user flow will be added here*
+The app screenshots above showcase the complete user flow from goal selection through workout plan generation, demonstrating the clean, modern iOS interface and intuitive user experience.
 
 ## 🏗️ Technical Architecture
 
