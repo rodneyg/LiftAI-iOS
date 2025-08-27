@@ -22,42 +22,46 @@ struct PlanView: View {
                 if let g = appState.goal {
                     Text("Goal: \(friendly(g))").foregroundStyle(.secondary)
                 }
-                if let gp = appState.gymProfile, !gp.equipments.isEmpty {
-                    Text("Detected equipment").font(.subheadline).bold()
-                    WrapChips(items: gp.equipments.map { friendly($0) })
-                }
 
-                HStack(spacing: 12) {
-                    Button(action: generate) {
-                        if isLoading { ProgressView().padding(.horizontal, 8) }
-                        else { Label("Build my plan", systemImage: "bolt.fill") }
+                if isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Generating workouts…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isLoading)
-
-                    if !workouts.isEmpty {
-                        Button(action: generate) { Label("Refresh", systemImage: "arrow.clockwise") }
-                            .buttonStyle(.bordered)
-                            .disabled(isLoading)
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                } else if let error {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                } else if workouts.isEmpty {
+                    Text("No workouts available. Try refresh.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack(spacing: 12) {
+                        Button(action: generate) {
+                            Label("Refresh plans", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isLoading)
                     }
-                }
 
-                if let error { Text(error).font(.footnote).foregroundStyle(.red).textSelection(.enabled) }
-                if workouts.isEmpty && !isLoading {
-                    Text("No plan yet. Tap “Build my plan”.").font(.footnote).foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(workouts) { w in
-                        PlanCard(workout: w)
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(workouts) { w in PlanCard(workout: w) }
                     }
                 }
             }
             .padding()
-            .padding(.bottom, 32)   // ensures scroll safe zone
+            .padding(.bottom, 32)
         }
-        .navigationTitle("Your plan")
+        .navigationTitle("Workout plans")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if workouts.isEmpty { generate() }
+        }
     }
 
     private func generate() {
@@ -65,7 +69,9 @@ struct PlanView: View {
         isLoading = true
         Task {
             defer { isLoading = false }
-            guard let goal = appState.goal, let ctx = appState.context else { error = "Missing goal or context"; return }
+            guard let goal = appState.goal, let ctx = appState.context else {
+                error = "Missing goal or context"; return
+            }
             let eq = appState.gymProfile?.equipments ?? []
             if appState.offlineOnly {
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
@@ -80,8 +86,8 @@ struct PlanView: View {
                 }
             } catch {
                 self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
-                workouts = plan.workouts
+                let fallback = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
+                workouts = fallback.workouts
             }
         }
     }
@@ -93,15 +99,6 @@ struct PlanView: View {
         case .fatLoss: return "Lose fat"
         case .endurance: return "Improve endurance"
         case .mobility: return "Improve mobility"
-        }
-    }
-    private func friendly(_ e: Equipment) -> String {
-        switch e {
-        case .benchFlat: return "Flat bench"
-        case .benchIncline: return "Incline bench"
-        case .latPulldown: return "Lat pulldown"
-        case .pullupBar: return "Pull-up bar"
-        default: return e.rawValue
         }
     }
 }
