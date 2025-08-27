@@ -27,9 +27,14 @@ struct LibraryPicker: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let parent: LibraryPicker
+        private var didFinish = false
         init(_ parent: LibraryPicker) { self.parent = parent }
+
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            guard !didFinish else { return }
+            didFinish = true
             guard !results.isEmpty else { picker.dismiss(animated: true); return }
+
             var uiImages: [UIImage] = []
             let group = DispatchGroup()
             for r in results {
