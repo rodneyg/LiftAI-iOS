@@ -8,9 +8,11 @@
 
 import SwiftUI
 
-struct LiftAISplashView: View {
-    @EnvironmentObject var flow: FlowController
-    @State private var animate = false
+struct SplashView: View {
+    var onFinish: () -> Void
+
+    @State private var scale: CGFloat = 0.8
+    @State private var opacity: Double = 0.0
 
     var body: some View {
         ZStack {
@@ -18,32 +20,36 @@ struct LiftAISplashView: View {
                            startPoint: .topLeading, endPoint: .bottomTrailing)
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(Color.liftAccent.opacity(0.22))
-                        .frame(width: animate ? 240 : 80, height: animate ? 240 : 80)
-                        .scaleEffect(animate ? 1 : 0.6)
-                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: animate)
+                        .fill(Color.liftAccent.opacity(0.15))
+                        .frame(width: 160, height: 160)
+                        .blur(radius: 12)
 
-                    Text("LiftAI")
-                        .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 64, weight: .bold))
                         .foregroundColor(.liftAccent)
-                        .shadow(color: .liftAccent.opacity(0.6), radius: 12, x: 0, y: 0)
+                        .scaleEffect(scale)
+                        .opacity(opacity)
+                        .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
                 }
 
-                Text("A plan for every gym.")
-                    .font(.headline)
-                    .foregroundColor(.liftGold)
-                    .opacity(animate ? 1 : 0)
-                    .animation(.easeInOut(duration: 1.2).delay(0.3), value: animate)
+                Text("LiftAI")
+                    .font(.title.bold())
+                    .foregroundColor(.primary)
+                    .opacity(opacity)
             }
         }
-        .toolbar(.hidden, for: .navigationBar) // hide nav on splash
         .onAppear {
-            animate = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                flow.goTo(.goal)
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                scale = 1.0
+            }
+            withAnimation(.easeIn(duration: 0.4)) {
+                opacity = 1.0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                onFinish()
             }
         }
     }
