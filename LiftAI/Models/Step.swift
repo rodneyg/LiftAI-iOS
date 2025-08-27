@@ -8,9 +8,10 @@
 import Foundation
 
 enum Step: String, Hashable, CaseIterable {
-    case goal, context, permissions, capture, detect, plan
+    case splash, goal, context, permissions, capture, detect, plan
     var next: Step? {
         switch self {
+        case .splash: return .goal
         case .goal: return .context
         case .context: return .permissions
         case .permissions: return .capture

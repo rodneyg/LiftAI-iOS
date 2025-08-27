@@ -14,9 +14,10 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack(path: $flow.path) {
-            GoalView()
+            LiftAISplashView() // start at splash
                 .navigationDestination(for: Step.self) { step in
                     switch step {
+                    case .splash: LiftAISplashView()
                     case .goal: GoalView()
                     case .context: ContextView()
                     case .permissions: PermissionsView()
@@ -26,13 +27,18 @@ struct RootView: View {
                     }
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    // hide settings on splash (path is empty on splash)
+                    if !flow.path.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                        }
                     }
                 }
         }
+        .tint(.liftAccent) // global accent
         .environmentObject(flow)
         .environmentObject(appState)
         .sheet(isPresented: $showSettings) { SettingsSheet().environmentObject(appState) }
     }
 }
+
