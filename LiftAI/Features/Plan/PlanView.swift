@@ -17,52 +17,97 @@ struct PlanView: View {
     private var planService: PlanService { OpenAIServiceHTTP() }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let g = appState.goal {
-                    Text("Goal: \(friendly(g))").foregroundStyle(.secondary)
-                }
+        ZStack {
+            LinearGradient(colors: [Color.black, Color(.systemGray6)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
 
+            VStack(spacing: 16) {
+                // Header
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Workout plans")
+                            .font(.largeTitle.bold())
+                            .foregroundColor(.white)
+
+                        if let g = appState.goal {
+                            GoalChip(goal: g)
+                        }
+                    }
+                    Spacer()
+                    // Secondary refresh with loading feedback
+                    Button(action: generate) {
+                        ZStack {
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.body.weight(.semibold))
+                            }
+                        }
+                        .frame(width: 36, height: 36)
+                        .background(Color(.systemBackground).opacity(0.9))
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
+                    }
+                    .disabled(isLoading)
+                    .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                // Content
                 if isLoading {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 10) {
                         ProgressView()
                         Text("Generating workouts…")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 200)
+                    .frame(maxWidth: .infinity, minHeight: 220)
                 } else if let error {
                     Text(error)
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
+                        .padding(.horizontal, 24)
                 } else if workouts.isEmpty {
-                    Text("No workouts available. Try refresh.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    HStack(spacing: 12) {
+                    VStack(spacing: 12) {
+                        Text("No workouts available.")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.primary)
                         Button(action: generate) {
-                            Label("Refresh plans", systemImage: "arrow.clockwise")
+                            Text("Try again")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 16).padding(.vertical, 10)
+                                .background(Color.liftAccent)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(isLoading)
                     }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(workouts) { w in PlanCard(workout: w) }
+                    .padding(.top, 24)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            ForEach(workouts) { w in
+                                PlanCard(workout: w, goal: appState.goal)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
                     }
                 }
+
+                Spacer(minLength: 0)
             }
-            .padding()
-            .padding(.bottom, 32)
+            .padding(.top, 12)
         }
-        .navigationTitle("Workout plans")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            if workouts.isEmpty { generate() }
-        }
+        .navigationBarHidden(true)
+        .onAppear { if workouts.isEmpty { generate() } }
     }
+
+    // MARK: - Logic
 
     private func generate() {
         error = nil
@@ -91,14 +136,49 @@ struct PlanView: View {
             }
         }
     }
+}
 
-    private func friendly(_ goal: Goal) -> String {
+// MARK: - Goal chip
+
+private struct GoalChip: View {
+    let goal: Goal
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon(goal))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(accent(goal))
+            Text(label(goal))
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(Color(.systemBackground).opacity(0.95))
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+    }
+
+    private func label(_ goal: Goal) -> String {
         switch goal {
         case .strength: return "Build strength"
         case .hypertrophy: return "Build muscle"
         case .fatLoss: return "Lose fat"
         case .endurance: return "Improve endurance"
         case .mobility: return "Improve mobility"
+        }
+    }
+    private func icon(_ goal: Goal) -> String {
+        switch goal {
+        case .strength: return "bolt.fill"
+        case .hypertrophy: return "figure.strengthtraining.traditional"
+        case .fatLoss: return "flame.fill"
+        case .endurance: return "figure.run"
+        case .mobility: return "figure.cooldown"
+        }
+    }
+    private func accent(_ goal: Goal) -> Color {
+        switch goal {
+        case .fatLoss: return .liftAccent
+        default: return .liftGold
         }
     }
 }
