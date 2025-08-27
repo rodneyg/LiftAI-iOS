@@ -31,7 +31,7 @@ struct GoalView: View {
                         .multilineTextAlignment(.center)
                         .transition(.move(edge: .top).combined(with: .opacity))
 
-                    Text("Select a training direction to shape your workouts")
+                    Text("Select a goal to shape your workouts")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
