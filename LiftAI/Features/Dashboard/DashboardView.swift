@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var flow: FlowController
 
     var body: some View {
         ZStack {
@@ -48,32 +49,31 @@ struct DashboardView: View {
                             InfoPill(system: "list.bullet.rectangle", text: "\(s.workouts.count) workouts")
                         }
 
-                        // Equipment summary (compact)
+                        // Equipment summary (compact) — FIXED CHIPS
                         if !s.equipments.isEmpty {
                             Text("Equipment")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
+
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(s.equipments, id: \.self) { e in
-                                        Capsule()
-                                            .fill(Color(.systemGray6))
-                                            .overlay(
-                                                Text(friendly(e))
-                                                    .font(.caption)
-                                                    .foregroundColor(.primary)
-                                                    .padding(.horizontal, 10)
-                                                    .padding(.vertical, 6)
-                                            )
+                                        EquipmentChip(text: friendly(e))
                                     }
                                 }
+                                .padding(.vertical, 2)
                             }
                         }
 
-                        // Actions (not wired yet; navigation will be in step 6/4)
+                        // Actions
                         HStack {
                             Button {
-                                // wired in a later step: navigate to PlanView using saved data
+                                // hydrate state and go straight to Plan
+                                appState.goal = s.goal
+                                appState.context = s.context
+                                appState.gymProfile = GymProfile(equipments: s.equipments)
+                                appState.cachedWorkouts = s.workouts
+                                flow.goTo(.plan)
                             } label: {
                                 Label("View plan", systemImage: "arrow.right.circle.fill")
                                     .font(.subheadline.weight(.semibold))
@@ -84,7 +84,6 @@ struct DashboardView: View {
                             }
 
                             Button(role: .destructive) {
-                                // allowed to clear storage; navigation reset arrives later
                                 appState.clearSavedSession()
                             } label: {
                                 Label("Start over", systemImage: "arrow.counterclockwise")
@@ -106,7 +105,7 @@ struct DashboardView: View {
 
                     Spacer()
                 } else {
-                    // No session: simple CTA to begin flow (wired later)
+                    // No session: CTA to begin flow
                     VStack(spacing: 14) {
                         Text("No saved plan yet")
                             .font(.headline)
@@ -115,7 +114,7 @@ struct DashboardView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Button {
-                            // wired in a later step: go to GoalView
+                            flow.goTo(.goal)
                         } label: {
                             Text("Begin")
                                 .font(.subheadline.weight(.semibold))
@@ -139,13 +138,13 @@ struct DashboardView: View {
             .padding(.top, 24)
         }
         .navigationBarHidden(true)
+        .tint(.liftAccent)
     }
 
     // MARK: - Helpers
 
     private var subtitle: String {
-        if appState.savedSession != nil { return "Welcome back" }
-        return "Let’s get started"
+        appState.savedSession != nil ? "Welcome back" : "Let’s get started"
     }
 
     private func dateString(_ d: Date) -> String {
@@ -189,6 +188,22 @@ struct DashboardView: View {
     }
 }
 
+// Fixed chip view to avoid skinny vertical capsules
+private struct EquipmentChip: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .foregroundColor(.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule().fill(Color(.systemGray6))
+            )
+            .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
 // Small pill
 private struct InfoPill: View {
     let system: String
@@ -196,8 +211,7 @@ private struct InfoPill: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: system)
-            Text(text)
-                .lineLimit(1)
+            Text(text).lineLimit(1)
         }
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 10).padding(.vertical, 6)
