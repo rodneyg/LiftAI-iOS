@@ -90,7 +90,9 @@ struct DetectView: View {
             }
             .padding(.top, 40)
         }
-        .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar) // keep clean look
+        .navigationBarBackButtonHidden(false) // use system back only
         .onAppear {
             guard !didStart else { return }
             didStart = true
@@ -169,7 +171,7 @@ extension Equipment {
         case .treadmill: return "figure.run"
         case .bike: return "bicycle"
         case .rower: return "figure.rower"
-        case .pullupBar: return "figure.strengthtraining.functional" // fallback icon for pull-up
+        case .pullupBar: return "figure.strengthtraining.functional"
         case .cableMachine, .latPulldown: return "square.grid.2x2"
         case .legPress: return "rectangle.compress.vertical"
         default: return "square.grid.2x2"

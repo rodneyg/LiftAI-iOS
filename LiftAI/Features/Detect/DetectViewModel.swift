@@ -5,7 +5,6 @@
 //  Created by Rodney Gainous Jr on 8/25/25.
 //
 
-
 import Foundation
 import UIKit
 import Combine
@@ -16,13 +15,16 @@ final class DetectViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String? = nil
     @Published var equipments: [Equipment] = []
-    @Published var useSampleGym = true
+    @Published var useSampleGym = false  // default off
 
-    var service: OpenAIService = OpenAIServiceHTTP()  // switched default to real
-    var forceOffline: Bool = false  // set from app state
+    var service: OpenAIService = OpenAIServiceHTTP()
+    var forceOffline: Bool = false
 
     func runDetection(with images: [UIImage] = []) async {
-        error = nil; isLoading = true
+        // clear stale UI first
+        error = nil
+        equipments = []
+        isLoading = true
         defer { isLoading = false }
 
         if useSampleGym || forceOffline {
@@ -32,10 +34,11 @@ final class DetectViewModel: ObservableObject {
             return
         }
 
+        Log.net.info("DetectViewModel starting. images=\(images.count)")
         do {
             let eq = try await service.detectEquipment(from: images)
             equipments = eq
-            Log.detect.info("Detection success. equipments=\(eq.map{$0.rawValue}.joined(separator: ","), privacy: .public)")
+            Log.net.info("DetectViewModel parsed equipments=\(eq.count) -> \(eq.map{$0.rawValue}.joined(separator: ","), privacy: .public)")
         } catch {
             equipments = []
             let err = error
