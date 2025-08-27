@@ -10,70 +10,107 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject var flow: FlowController
     @EnvironmentObject var appState: AppState
-    @State private var loadResult: String = ""
-    @State private var plan: Plan? = nil
+
+    @State private var isLoading = false
+    @State private var error: String? = nil
+    @State private var workouts: [Workout] = []
+    private var planService: PlanService { OpenAIServiceHTTP() } // fallback to mock in previews
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Plan").font(.title2).bold()
-            Text("Context: \(appState.context?.rawValue ?? "unknown")").foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Your plan").font(.title2).bold()
 
-            if let gp = appState.gymProfile {
-                Text("Equipment count: \(gp.equipments.count)").font(.subheadline)
-                WrapChips(items: gp.equipments.map(\.rawValue))
-            }
+                if let g = appState.goal {
+                    Text("Goal: \(friendly(g))").foregroundStyle(.secondary)
+                }
 
-            Button("Generate Plan") {
-                guard let goal = appState.goal, let ctx = appState.context else { return }
-                let eq = appState.gymProfile?.equipments ?? []
-                plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
-            }
-            .buttonStyle(.borderedProminent)
+                if let gp = appState.gymProfile, !gp.equipments.isEmpty {
+                    Text("Detected equipment").font(.subheadline).bold()
+                    WrapChips(items: gp.equipments.map { friendly($0) })
+                }
 
-            if let plan {
+                HStack(spacing: 12) {
+                    Button(action: generate) {
+                        if isLoading { ProgressView().padding(.horizontal, 8) }
+                        else { Label("Build my plan", systemImage: "bolt.fill") }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isLoading)
+
+                    if !workouts.isEmpty {
+                        Button(action: generate) { Label("Refresh", systemImage: "arrow.clockwise") }
+                            .buttonStyle(.bordered)
+                            .disabled(isLoading)
+                    }
+                }
+
+                if let error { Text(error).font(.footnote).foregroundStyle(.red).textSelection(.enabled) }
+
+                if workouts.isEmpty && !isLoading {
+                    Text("No plan yet. Tap “Build my plan”.").font(.footnote).foregroundStyle(.secondary)
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(plan.workouts) { w in
+                    ForEach(workouts) { w in
                         PlanCard(workout: w)
                     }
                 }
-            } else {
-                Text("No plan yet. Tap Generate.").font(.footnote).foregroundStyle(.secondary)
             }
-
-            Divider().padding(.vertical, 4)
-
-            HStack {
-                Button("Save Test Plan") { saveDummy() }
-                Button("Load Test Plan") { loadDummy() }
-            }
-            Text(loadResult).font(.footnote).foregroundStyle(.secondary)
-
-            Spacer()
-            Button("Restart") { flow.reset() }
+            .padding()
         }
-        .padding()
         .navigationTitle("Plan")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func saveDummy() {
-        let w = Workout(title: "Full Body A",
-                        blocks: [[Movement(name: "Squat", equipment: .squatRack, primary: "quads", tempo: nil)]],
-                        estMinutes: 45)
-        let plan = Plan(goal: .strength, workouts: [w])
-        do {
-            try Persistence.save(plan, as: "plan.json")
-            loadResult = "Saved plan.json"
-        } catch {
-            loadResult = "Save failed: \(error.localizedDescription)"
+    private func generate() {
+        error = nil
+        isLoading = true
+        Task {
+            defer { isLoading = false }
+            guard let goal = appState.goal, let ctx = appState.context else {
+                error = "Missing goal or context"; return
+            }
+            let eq = appState.gymProfile?.equipments ?? []
+
+            if appState.offlineOnly {
+                // Fallback deterministic
+                let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
+                workouts = plan.workouts
+                return
+            }
+
+            do {
+                workouts = try await planService.generateWorkouts(goal: goal, context: ctx, equipments: eq)
+                if workouts.isEmpty {
+                    // fallback if model returns empty
+                    let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
+                    workouts = plan.workouts
+                }
+            } catch {
+                self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
+                workouts = plan.workouts
+            }
         }
     }
 
-    private func loadDummy() {
-        do {
-            let plan: Plan = try Persistence.load(Plan.self, from: "plan.json")
-            loadResult = "Loaded: \(plan.goal.rawValue), \(plan.workouts.first?.title ?? "n/a")"
-        } catch {
-            loadResult = "Load failed: \(error.localizedDescription)"
+    private func friendly(_ goal: Goal) -> String {
+        switch goal {
+        case .strength: return "Build strength"
+        case .hypertrophy: return "Build muscle"
+        case .fatLoss: return "Lose fat"
+        case .endurance: return "Improve endurance"
+        case .mobility: return "Improve mobility"
+        }
+    }
+    private func friendly(_ e: Equipment) -> String {
+        switch e {
+        case .benchFlat: return "Flat bench"
+        case .benchIncline: return "Incline bench"
+        case .latPulldown: return "Lat pulldown"
+        case .pullupBar: return "Pull-up bar"
+        default: return e.rawValue
         }
     }
 }

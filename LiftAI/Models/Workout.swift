@@ -12,6 +12,8 @@ struct Movement: Codable, Equatable {
     var equipment: Equipment?
     var primary: String
     var tempo: String?
+    var sets: Int?
+    var reps: Int?
 }
 
 struct Workout: Codable, Identifiable, Equatable {

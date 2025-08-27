@@ -39,13 +39,14 @@ struct PlanCard: View {
 private struct MovementRow: View {
     let m: Movement
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "figure.strengthtraining.traditional")
+        HStack(spacing: 10) {
+            Image(systemName: iconName(for: m))
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.name)
                 HStack(spacing: 6) {
-                    if let eq = m.equipment { Chip(text: eq.rawValue) }
+                    if let eq = m.equipment { Chip(text: friendly(eq)) }
                     Chip(text: m.primary)
+                    if let s = m.sets, let r = m.reps { Chip(text: "\(s)×\(r)") }
                     if let t = m.tempo { Chip(text: t) }
                 }.font(.caption)
             }
@@ -53,6 +54,34 @@ private struct MovementRow: View {
         }
     }
 }
+
+private func iconName(for m: Movement) -> String {
+    if let eq = m.equipment {
+        switch eq {
+        case .dumbbells: return "dumbbell"
+        case .treadmill: return "figure.run"
+        case .bike: return "bicycle"
+        case .rower: return "figure.rower"
+        case .squatRack, .barbell, .smithMachine: return "figure.strengthtraining.traditional"
+        case .cableMachine, .latPulldown, .pulleySingle: return "cable.connector"
+        case .benchFlat, .benchIncline: return "rectangle.portrait"
+        default: return "figure.strengthtraining.functional"
+        }
+    }
+    // no equipment
+    return "figure.cooldown"
+}
+
+private func friendly(_ e: Equipment) -> String {
+    switch e {
+    case .benchFlat: return "Flat bench"
+    case .benchIncline: return "Incline bench"
+    case .latPulldown: return "Lat pulldown"
+    case .pullupBar: return "Pull-up bar"
+    default: return e.rawValue
+    }
+}
+
 
 private struct Chip: View {
     let text: String

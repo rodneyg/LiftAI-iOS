@@ -144,7 +144,101 @@ Rules:
 enum DetectionParser {
     static func parse(_ data: Data) throws -> [Equipment] {
         let resp = try JSONDecoder().decode(DetectionResponse.self, from: data)
-        let uniq = Array(Set(resp.equipments))
-        return uniq.compactMap { Equipment(rawValue: $0) }
+        var out = [Equipment]()
+        var seen = Set<Equipment>()
+        for s in resp.equipments {
+            if let eq = EquipmentNormalizer.normalize(s), !seen.contains(eq) {
+                seen.insert(eq); out.append(eq)
+            }
+        }
+        return out
+    }
+}
+
+extension OpenAIServiceHTTP: PlanService {
+    func generateWorkouts(goal: Goal, context: TrainingContext, equipments: [Equipment]) async throws -> [Workout] {
+        guard !apiKey.isEmpty else { throw Err.noApiKey }
+
+        let equipList = equipments.map { $0.rawValue }.joined(separator: ", ")
+        let goalText: String = {
+            switch goal {
+            case .strength: return "Build strength"
+            case .hypertrophy: return "Build muscle"
+            case .fatLoss: return "Lose fat"
+            case .endurance: return "Improve endurance"
+            case .mobility: return "Improve mobility"
+            }
+        }()
+
+        let allowed = Equipment.allCases.map { $0.rawValue }.joined(separator: ", ")
+        let prompt = """
+        You are a certified strength coach. Create EXACTLY 3 distinct workouts tailored to the user.
+
+        Inputs:
+        - Goal: \(goalText)
+        - Location: \(context == .home ? "Home" : "Gym")
+        - Available equipment (allowed values only): [\(equipList)]
+        - Allowed equipment labels (MUST use these strings or null): [\(allowed)]
+
+        Rules:
+        - 4–6 exercises per workout.
+        - Each exercise MUST include: name (string), primary (string), equipment (one of allowed labels or null), tempo (string or null), sets (int), reps (int).
+        - Session length 30–60 minutes (estMinutes int).
+        - Use only available equipment when specified. Prefer compound lifts when possible.
+        - Respond ONLY with JSON in this exact shape:
+        {
+          "workouts": [
+            {
+              "title": "...",
+              "estMinutes": 45,
+              "exercises": [
+                { "name": "...", "primary": "...", "equipment": "dumbbells" | null, "tempo": "3-1-3" | null, "sets": 4, "reps": 8 }
+              ]
+            }
+          ]
+        }
+        - No extra fields. No prose. No markdown.
+        """
+
+        let body: [String: Any] = [
+            "model": self.model, // default gpt-4o
+            "messages": [
+                ["role": "user", "content": [
+                    ["type": "text", "text": prompt]
+                ]]
+            ],
+            "response_format": ["type": "json_object"]
+        ]
+
+        var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+        guard code == 200 else {
+            let server = (try? JSONDecoder().decode(APIError.self, from: data))?.error?.message
+                ?? String(data: data, encoding: .utf8) ?? ""
+            Log.net.error("OpenAI plan bad status \(code). server='\(server, privacy: .public)'")
+            throw Err.badStatus(code, server.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        struct Root: Decodable {
+            struct Choice: Decodable { struct Msg: Decodable { let content: String }; let message: Msg }
+            let choices: [Choice]
+        }
+        do {
+            let root = try JSONDecoder().decode(Root.self, from: data)
+            guard let jsonString = root.choices.first?.message.content else { throw Err.empty }
+            Log.net.info("OpenAI plan raw: \(jsonString, privacy: .public)")
+            let workouts = try PlanParser.parse(Data(jsonString.utf8))
+            Log.net.info("OpenAI plan parsed workouts=\(workouts.count)")
+            return workouts
+        } catch {
+            Log.net.error("OpenAI plan decode failure: \(error.localizedDescription, privacy: .public)")
+            throw Err.decode
+        }
     }
 }
