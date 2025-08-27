@@ -14,6 +14,8 @@ struct PlanView: View {
     @State private var isLoading = false
     @State private var error: String? = nil
     @State private var workouts: [Workout] = []
+    @State private var justSaved = false
+
     private var planService: PlanService { OpenAIServiceHTTP() }
 
     var body: some View {
@@ -44,6 +46,7 @@ struct PlanView: View {
                             } else {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.body.weight(.semibold))
+                                    .foregroundColor(.liftAccent)
                             }
                         }
                         .frame(width: 36, height: 36)
@@ -103,8 +106,25 @@ struct PlanView: View {
             }
             .padding(.top, 12)
         }
+        .tint(.liftAccent)
         .navigationBarHidden(true)
-        .onAppear { if workouts.isEmpty { generate() } }
+        .onAppear {
+            if workouts.isEmpty, let cached = appState.cachedWorkouts, !cached.isEmpty {
+                workouts = cached
+            } else if workouts.isEmpty {
+                generate()
+            }
+        }
+        .overlay(alignment: .top) {
+            if justSaved {
+                Text("Saved to Dashboard")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 
     // MARK: - Logic
@@ -121,6 +141,8 @@ struct PlanView: View {
             if appState.offlineOnly {
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = plan.workouts
+                appState.saveCurrentSession(workouts: workouts)
+                showSavedBanner()
                 return
             }
             do {
@@ -129,11 +151,22 @@ struct PlanView: View {
                     let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                     workouts = plan.workouts
                 }
+                appState.saveCurrentSession(workouts: workouts)
+                showSavedBanner()
             } catch {
                 self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 let fallback = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = fallback.workouts
+                appState.saveCurrentSession(workouts: workouts)
+                showSavedBanner()
             }
+        }
+    }
+
+    private func showSavedBanner() {
+        withAnimation(.easeInOut(duration: 0.2)) { justSaved = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeInOut(duration: 0.2)) { justSaved = false }
         }
     }
 }

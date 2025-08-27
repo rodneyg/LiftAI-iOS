@@ -51,6 +51,7 @@ struct RootView: View {
                 }
             }
         }
+        .tint(.liftAccent)
         .environmentObject(flow)
         .environmentObject(appState)
         .sheet(isPresented: $showSettings) { SettingsSheet().environmentObject(appState) }

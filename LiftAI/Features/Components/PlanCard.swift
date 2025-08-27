@@ -112,7 +112,7 @@ private struct MovementRow: View {
             // 1) Exercise name - primary anchor
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Image(systemName: iconName(for: m))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.liftAccent)
                     .font(.system(size: 20, weight: .semibold))
                     .frame(width: 20)
                 Text(m.name)
