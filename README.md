@@ -4,14 +4,6 @@
 
 LiftAI is an intelligent iOS fitness app that creates personalized workout plans using artificial intelligence. Simply set your fitness goals, snap photos of your available equipment, and let AI generate customized workouts tailored specifically for you.
 
-![IMG_3347](https://github.com/user-attachments/assets/a3af76f0-4940-4adc-99d6-f95134df32f1)
-![IMG_3346](https://github.com/user-attachments/assets/386f5b0f-84ee-481d-b8c3-b92bcfada516)
-![IMG_3345](https://github.com/user-attachments/assets/c29fa60b-ff51-464a-8b49-13b431142ab7)
-![IMG_3344](https://github.com/user-attachments/assets/9207390f-c369-40b5-8d42-16621cc400b4)
-![IMG_3343](https://github.com/user-attachments/assets/68b612dc-d494-4cb7-973b-042c4770557f)
-![IMG_3342](https://github.com/user-attachments/assets/7315010d-94ed-47f9-a17a-3fd957f6ff6a)
-
-
 ![iOS](https://img.shields.io/badge/iOS-15.0+-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-✓-green)
@@ -45,7 +37,15 @@ LiftAI is an intelligent iOS fitness app that creates personalized workout plans
 
 ## 🎬 Screenshots
 
-*Screenshots showcasing the beautiful UI and user flow will be added here*
+
+![IMG_3347](https://github.com/user-attachments/assets/a3af76f0-4940-4adc-99d6-f95134df32f1)
+![IMG_3346](https://github.com/user-attachments/assets/386f5b0f-84ee-481d-b8c3-b92bcfada516)
+![IMG_3345](https://github.com/user-attachments/assets/c29fa60b-ff51-464a-8b49-13b431142ab7)
+![IMG_3344](https://github.com/user-attachments/assets/9207390f-c369-40b5-8d42-16621cc400b4)
+![IMG_3343](https://github.com/user-attachments/assets/68b612dc-d494-4cb7-973b-042c4770557f)
+![IMG_3342](https://github.com/user-attachments/assets/7315010d-94ed-47f9-a17a-3fd957f6ff6a)
+
+
 
 ## 🏗️ Technical Architecture
 
