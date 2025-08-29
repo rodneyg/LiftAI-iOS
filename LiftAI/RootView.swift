@@ -55,5 +55,8 @@ struct RootView: View {
         .environmentObject(flow)
         .environmentObject(appState)
         .sheet(isPresented: $showSettings) { SettingsSheet().environmentObject(appState) }
+        .onReceive(flow.$homeTrigger) { _ in
+            withAnimation { startRoute = .dashboard }
+        }
     }
 }

@@ -12,6 +12,7 @@ struct DetectView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = DetectViewModel()
     @State private var didStart = false
+    @State private var showEditor = false
 
     var body: some View {
         ZStack {
@@ -45,6 +46,18 @@ struct DetectView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                // Manual edit
+                Button {
+                    showEditor = true
+                } label: {
+                    Label("Edit manually", systemImage: "slider.horizontal.3")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16).padding(.vertical, 8)
+                        .background(Color(.systemBackground).opacity(0.9))
+                        .foregroundColor(.primary)
+                        .clipShape(Capsule())
                 }
 
                 // Results grid
@@ -96,7 +109,15 @@ struct DetectView: View {
         .onAppear {
             guard !didStart else { return }
             didStart = true
+            vm.useSampleGym = appState.offlineOnly
             Task { await vm.runDetection(with: appState.capturedImages) }
+        }
+        .sheet(isPresented: $showEditor) {
+            EquipmentEditorView(initial: vm.equipments) { newSet in
+                let arr = Array(newSet)
+                vm.equipments = arr
+                appState.gymProfile = GymProfile(equipments: arr)
+            }
         }
     }
 
