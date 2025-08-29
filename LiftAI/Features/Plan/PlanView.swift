@@ -15,6 +15,7 @@ struct PlanView: View {
     @State private var error: String? = nil
     @State private var workouts: [Workout] = []
     @State private var justSaved = false
+    @State private var showSettingsSheet = false
 
     private var planService: PlanService { OpenAIServiceHTTP() }
 
@@ -79,15 +80,6 @@ struct PlanView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
-                // Error notice (non-blocking)
-                if let error {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, 16)
-                }
-
                 // Content
                 if isLoading {
                     VStack(spacing: 10) {
@@ -97,6 +89,26 @@ struct PlanView: View {
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 220)
+                } else if let error {
+                    VStack(spacing: 10) {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 24)
+                        if error.localizedCaseInsensitiveContains("Missing API key") {
+                            Button {
+                                showSettingsSheet = true
+                            } label: {
+                                Text("Set API key in Settings")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 16).padding(.vertical, 10)
+                                    .background(Color.liftAccent)
+                                    .foregroundColor(.white)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
                 } else if workouts.isEmpty {
                     VStack(spacing: 12) {
                         Text("No workouts available.")
@@ -130,6 +142,9 @@ struct PlanView: View {
         }
         .tint(.liftAccent)
         .navigationBarHidden(true)
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsSheet().environmentObject(appState)
+        }
         .onAppear {
             if workouts.isEmpty, let cached = appState.cachedWorkouts, !cached.isEmpty {
                 workouts = cached
