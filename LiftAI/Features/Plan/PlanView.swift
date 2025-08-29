@@ -15,6 +15,7 @@ struct PlanView: View {
     @State private var error: String? = nil
     @State private var workouts: [Workout] = []
     @State private var justSaved = false
+    @State private var showSettingsSheet = false
 
     private var planService: PlanService { OpenAIServiceHTTP() }
 
@@ -89,11 +90,25 @@ struct PlanView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 220)
                 } else if let error {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, 24)
+                    VStack(spacing: 10) {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, 24)
+                        if error.localizedCaseInsensitiveContains("Missing API key") {
+                            Button {
+                                showSettingsSheet = true
+                            } label: {
+                                Text("Set API key in Settings")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 16).padding(.vertical, 10)
+                                    .background(Color.liftAccent)
+                                    .foregroundColor(.white)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
                 } else if workouts.isEmpty {
                     VStack(spacing: 12) {
                         Text("No workouts available.")
@@ -143,6 +158,9 @@ struct PlanView: View {
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        }
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsSheet().environmentObject(appState)
         }
     }
 

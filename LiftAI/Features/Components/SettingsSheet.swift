@@ -50,6 +50,9 @@ struct SettingsSheet: View {
                     Text("Photos are sent to OpenAI only for equipment detection when offline is disabled. No analytics. You can use offline mode to avoid any network calls.")
                         .font(.footnote)
                 }
+                Section("Support") {
+                    Link("Contact Support", destination: URL(string: "mailto:support@liftai.app?subject=LiftAI%20Support")!)
+                }
                 Section("Legal") {
                     Link("Privacy Policy", destination: URL(string: "https://liftai.app/privacy")!)
                     Link("Terms of Use", destination: URL(string: "https://liftai.app/terms")!)

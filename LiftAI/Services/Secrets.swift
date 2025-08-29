@@ -16,14 +16,15 @@ enum Secrets {
         if let kc = Keychain.get(keychainKey), !kc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return kc
         }
-        guard
-            let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
-            let data = try? Data(contentsOf: url),
-            let dict = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any]
-        else { return "" }
-        // Support either key casing
-        let key = (dict["OPENAI_API_KEY"] as? String) ?? (dict["OpenAI_API_Key"] as? String) ?? ""
-        return key
+        #if DEBUG
+        if let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+           let data = try? Data(contentsOf: url),
+           let dict = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] {
+            let key = (dict["OPENAI_API_KEY"] as? String) ?? (dict["OpenAI_API_Key"] as? String) ?? ""
+            return key
+        }
+        #endif
+        return ""
     }
 
     @discardableResult

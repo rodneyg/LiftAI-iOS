@@ -110,8 +110,10 @@ final class OpenAIServiceHTTP: OpenAIService {
         do {
             let root = try JSONDecoder().decode(Root.self, from: data)
             guard let jsonString = root.choices.first?.message.content else { throw Err.empty }
+            #if DEBUG
             Log.net.debug("OpenAI content prefix: \(String(jsonString.prefix(120)), privacy: .public)")
             Log.net.info("OpenAI raw content: \(jsonString, privacy: .public)")
+            #endif
             let equipments = try DetectionParser.parse(Data(jsonString.utf8))
             Log.net.info("Detection counts: parsed=\(equipments.count)")
             return equipments
@@ -244,7 +246,9 @@ extension OpenAIServiceHTTP: PlanService {
         do {
             let root = try JSONDecoder().decode(Root.self, from: data)
             guard let jsonString = root.choices.first?.message.content else { throw Err.empty }
+            #if DEBUG
             Log.net.info("OpenAI plan raw: \(jsonString, privacy: .public)")
+            #endif
             var workouts = try PlanParser.parse(Data(jsonString.utf8))
 
             // Post-filter: drop movements that use unavailable equipment.
