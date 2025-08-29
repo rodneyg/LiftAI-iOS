@@ -142,6 +142,9 @@ struct PlanView: View {
         }
         .tint(.liftAccent)
         .navigationBarHidden(true)
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsSheet().environmentObject(appState)
+        }
         .onAppear {
             if workouts.isEmpty, let cached = appState.cachedWorkouts, !cached.isEmpty {
                 workouts = cached
@@ -179,7 +182,7 @@ struct PlanView: View {
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = plan.workouts
                 appState.saveCurrentSession(workouts: workouts)
-                showSavedBanner()
+                // Do not show "Saved to Dashboard" banner when offline-only
                 return
             }
             do {
@@ -189,13 +192,14 @@ struct PlanView: View {
                     workouts = plan.workouts
                 }
                 appState.saveCurrentSession(workouts: workouts)
+                // Only show "Saved to Dashboard" when API call succeeded
                 showSavedBanner()
             } catch {
                 self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 let fallback = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = fallback.workouts
                 appState.saveCurrentSession(workouts: workouts)
-                showSavedBanner()
+                // Do not show "Saved to Dashboard" banner on API failure
             }
         }
     }
