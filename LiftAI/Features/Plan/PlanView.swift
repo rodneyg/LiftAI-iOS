@@ -79,6 +79,15 @@ struct PlanView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
+                // Error notice (non-blocking)
+                if let error {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 16)
+                }
+
                 // Content
                 if isLoading {
                     VStack(spacing: 10) {
@@ -88,12 +97,6 @@ struct PlanView: View {
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 220)
-                } else if let error {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, 24)
                 } else if workouts.isEmpty {
                     VStack(spacing: 12) {
                         Text("No workouts available.")
@@ -161,7 +164,7 @@ struct PlanView: View {
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = plan.workouts
                 appState.saveCurrentSession(workouts: workouts)
-                showSavedBanner()
+                // Do not show "Saved to Dashboard" banner when offline-only
                 return
             }
             do {
@@ -171,13 +174,14 @@ struct PlanView: View {
                     workouts = plan.workouts
                 }
                 appState.saveCurrentSession(workouts: workouts)
+                // Only show "Saved to Dashboard" when API call succeeded
                 showSavedBanner()
             } catch {
                 self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 let fallback = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = fallback.workouts
                 appState.saveCurrentSession(workouts: workouts)
-                showSavedBanner()
+                // Do not show "Saved to Dashboard" banner on API failure
             }
         }
     }

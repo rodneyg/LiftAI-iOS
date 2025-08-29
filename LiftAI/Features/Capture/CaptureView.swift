@@ -122,7 +122,8 @@ struct CaptureView: View {
             }
             .padding(.top, 40)
         }
-        .navigationBarHidden(true)
+        // Show default back button to allow returning to Permissions
+        .navigationBarBackButtonHidden(false)
         .sheet(isPresented: $showCamera) {
             CameraPicker(isPresented: $showCamera) { img in vm.add(img) }
         }

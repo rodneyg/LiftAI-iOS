@@ -10,7 +10,7 @@ import SwiftUI
 struct ContextView: View {
     @EnvironmentObject var flow: FlowController
     @EnvironmentObject var appState: AppState
-    @State private var selection: TrainingContext? = nil
+    @State private var selection: TrainingContext? = .gym
     @Namespace private var anim
 
     var body: some View {
@@ -69,7 +69,8 @@ struct ContextView: View {
             }
             .padding(.top, 40)
         }
-        .navigationBarHidden(true)
+        // Show default back button when navigated, none when root
+        .navigationBarBackButtonHidden(false)
     }
 
     // MARK: - Components

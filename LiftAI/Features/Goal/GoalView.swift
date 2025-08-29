@@ -95,7 +95,8 @@ struct GoalView: View {
             }
             .padding(.top, 40)
         }
-        .navigationBarHidden(true)
+        // Only show back button if this view was pushed
+        .navigationBarBackButtonHidden(false)
     }
 
     private func label(for goal: Goal) -> String {

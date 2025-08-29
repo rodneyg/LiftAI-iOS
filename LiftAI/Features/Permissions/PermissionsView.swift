@@ -104,7 +104,8 @@ struct PermissionsView: View {
                 .padding(.top, 40)
             }
         }
-        .navigationBarHidden(true)
+        // Show default back button to allow returning to Context
+        .navigationBarBackButtonHidden(false)
         .onAppear { vm.refreshStatuses() }
     }
 
