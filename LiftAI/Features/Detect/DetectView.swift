@@ -13,6 +13,7 @@ struct DetectView: View {
     @StateObject private var vm = DetectViewModel()
     @State private var didStart = false
     @State private var showEditor = false
+    @State private var showSettingsSheet = false
 
     var body: some View {
         ZStack {
@@ -36,11 +37,25 @@ struct DetectView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if let err = vm.error {
-                        Text(err)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
+                        VStack(spacing: 8) {
+                            Text(err)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                            if err.localizedCaseInsensitiveContains("Missing API key") {
+                                Button {
+                                    showSettingsSheet = true
+                                } label: {
+                                    Text("Set API key in Settings")
+                                        .font(.subheadline.weight(.semibold))
+                                        .padding(.horizontal, 16).padding(.vertical, 8)
+                                        .background(Color.liftAccent)
+                                        .foregroundColor(.white)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
                     } else if !vm.equipments.isEmpty {
                         Text(friendlySubtitle(vm.equipments.count))
                             .font(.subheadline)
@@ -71,11 +86,23 @@ struct DetectView: View {
                         .padding(.horizontal, 16)
                     }
                 } else if !vm.isLoading && vm.error == nil {
-                    Text("We couldn’t spot any equipment. Try clearer photos.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
+                    VStack(spacing: 10) {
+                        Text("We couldn’t spot any equipment.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                        Button {
+                            showEditor = true
+                        } label: {
+                            Text("Proceed with manual selection")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 16).padding(.vertical, 10)
+                                .background(Color.liftAccent)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
+                    }
                 }
 
                 Spacer()
@@ -118,6 +145,9 @@ struct DetectView: View {
                 vm.equipments = arr
                 appState.gymProfile = GymProfile(equipments: arr)
             }
+        }
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsSheet().environmentObject(appState)
         }
     }
 
