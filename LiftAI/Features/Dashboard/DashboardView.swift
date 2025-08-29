@@ -10,6 +10,8 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var flow: FlowController
+    @State private var showEquipEditor = false
+    @State private var showSettings = false
 
     var body: some View {
         ZStack {
@@ -29,6 +31,18 @@ struct DashboardView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
+                .overlay(alignment: .topTrailing) {
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.title3.weight(.semibold))
+                            .foregroundColor(.liftAccent)
+                            .padding(8)
+                            .background(Color(.systemBackground).opacity(0.9))
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
+                    }
+                    .padding(.trailing, 8)
+                }
 
                 if let s = appState.savedSession {
                     // Saved session card
@@ -80,6 +94,17 @@ struct DashboardView: View {
                                     .padding(.horizontal, 14).padding(.vertical, 10)
                                     .background(Color.liftAccent)
                                     .foregroundColor(.white)
+                                    .clipShape(Capsule())
+                            }
+
+                            Button {
+                                showEquipEditor = true
+                            } label: {
+                                Label("Edit equipment", systemImage: "slider.horizontal.3")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 14).padding(.vertical, 10)
+                                    .background(Color(.systemGray6))
+                                    .foregroundColor(.primary)
                                     .clipShape(Capsule())
                             }
 
@@ -140,6 +165,16 @@ struct DashboardView: View {
         }
         .navigationBarHidden(true)
         .tint(.liftAccent)
+        .sheet(isPresented: $showEquipEditor) {
+            if let s = appState.savedSession {
+                EquipmentEditorView(initial: s.equipments) { newSet in
+                    appState.updateSavedEquipments(Array(newSet))
+                }
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsSheet().environmentObject(appState)
+        }
     }
 
     // MARK: - Helpers

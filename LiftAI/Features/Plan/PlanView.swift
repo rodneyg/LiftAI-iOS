@@ -37,6 +37,14 @@ struct PlanView: View {
                         }
                     }
                     Spacer()
+                    // Go Home
+                    Button(action: { flow.goHome() }) {
+                        Image(systemName: "house.fill")
+                            .font(.body.weight(.semibold))
+                            .foregroundColor(.liftAccent)
+                    }
+                    .accessibilityLabel("Go Home")
+
                     // Secondary refresh with loading feedback
                     Button(action: generate) {
                         ZStack {

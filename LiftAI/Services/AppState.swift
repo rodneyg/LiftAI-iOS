@@ -55,4 +55,20 @@ final class AppState: ObservableObject {
         clearSavedSession()
         offlineOnly = false
     }
+
+    // Update saved equipments in the current saved session, if any, and reflect in-memory state.
+    func updateSavedEquipments(_ equipments: [Equipment]) {
+        if let existing = SavedSessionStore.shared.load() {
+            let updated = SavedSession(
+                savedAt: Date(),
+                goal: existing.goal,
+                context: existing.context,
+                equipments: equipments,
+                workouts: existing.workouts
+            )
+            SavedSessionStore.shared.save(updated)
+            cachedWorkouts = existing.workouts
+        }
+        gymProfile = GymProfile(equipments: equipments)
+    }
 }
