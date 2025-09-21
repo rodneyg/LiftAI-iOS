@@ -11,6 +11,7 @@ struct MicroActionView: View {
     let floor: ConsistencyFloor
     let action: MicroAction
     let onComplete: (Int?, Int?) -> Void // duration, reps
+    let onExpandToWorkout: (() -> Void)? // Optional callback to expand to full workout
     
     @Environment(\.dismiss) private var dismiss
     @State private var isRunning = false
@@ -18,6 +19,22 @@ struct MicroActionView: View {
     @State private var repCount = 0
     @State private var isComplete = false
     @State private var timer: Timer?
+    
+    // Default initializer without expand callback
+    init(floor: ConsistencyFloor, action: MicroAction, onComplete: @escaping (Int?, Int?) -> Void) {
+        self.floor = floor
+        self.action = action
+        self.onComplete = onComplete
+        self.onExpandToWorkout = nil
+    }
+    
+    // Full initializer with expand callback
+    init(floor: ConsistencyFloor, action: MicroAction, onComplete: @escaping (Int?, Int?) -> Void, onExpandToWorkout: (() -> Void)?) {
+        self.floor = floor
+        self.action = action
+        self.onComplete = onComplete
+        self.onExpandToWorkout = onExpandToWorkout
+    }
     
     var body: some View {
         ZStack {
@@ -288,16 +305,36 @@ struct MicroActionView: View {
                     .multilineTextAlignment(.center)
             }
             
-            Button {
-                dismiss()
-            } label: {
-                Text("Done")
-                    .font(.headline.weight(.semibold))
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.liftAccent)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
+            VStack(spacing: 12) {
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Done")
+                        .font(.headline.weight(.semibold))
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 16)
+                        .background(Color.liftAccent)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
+                
+                if let onExpandToWorkout = onExpandToWorkout {
+                    Button {
+                        onExpandToWorkout()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle")
+                            Text("Expand to full workout")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color(.systemGray6))
+                        .foregroundColor(.primary)
+                        .clipShape(Capsule())
+                    }
+                }
             }
         }
     }

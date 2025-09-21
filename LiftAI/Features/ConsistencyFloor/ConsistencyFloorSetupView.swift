@@ -190,7 +190,7 @@ struct ConsistencyFloorSetupView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Skip") {
                     // Continue without setting floor
-                    flow.advance(from: .plan)
+                    flow.goHome()
                 }
                 .foregroundColor(.liftAccent)
             }
@@ -273,7 +273,7 @@ struct ConsistencyFloorSetupView: View {
         
         appState.saveConsistencyFloor(floor)
         
-        // Continue to next step or dashboard
-        flow.advance(from: .plan)
+        // Navigate back to dashboard after setting up floor
+        flow.goHome()
     }
 }

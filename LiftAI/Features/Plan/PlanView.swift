@@ -182,6 +182,7 @@ struct PlanView: View {
                 let plan = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = plan.workouts
                 appState.saveCurrentSession(workouts: workouts)
+                autoSatisfyFloor()
                 // Do not show "Saved to Dashboard" banner when offline-only
                 return
             }
@@ -192,6 +193,7 @@ struct PlanView: View {
                     workouts = plan.workouts
                 }
                 appState.saveCurrentSession(workouts: workouts)
+                autoSatisfyFloor()
                 // Only show "Saved to Dashboard" when API call succeeded
                 showSavedBanner()
             } catch {
@@ -199,8 +201,21 @@ struct PlanView: View {
                 let fallback = PlanEngine.generate(goal: goal, context: ctx, equipments: eq)
                 workouts = fallback.workouts
                 appState.saveCurrentSession(workouts: workouts)
+                autoSatisfyFloor()
                 // Do not show "Saved to Dashboard" banner on API failure
             }
+        }
+    }
+    
+    /// Auto-satisfy the consistency floor when a full workout is generated/viewed
+    private func autoSatisfyFloor() {
+        if !ConsistencyService.shared.isTodayCompleted && !workouts.isEmpty {
+            let totalMinutes = workouts.reduce(0) { $0 + $1.estMinutes }
+            ConsistencyService.shared.markFloorCompleted(
+                actionId: "full_workout",
+                duration: totalMinutes,
+                reps: nil
+            )
         }
     }
 

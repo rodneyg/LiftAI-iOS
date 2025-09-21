@@ -8,7 +8,7 @@
 import Foundation
 
 enum Step: String, Hashable, CaseIterable {
-    case splash, goal, context, permissions, capture, detect, plan
+    case splash, goal, context, permissions, capture, detect, plan, consistencyFloor
     var next: Step? {
         switch self {
         case .splash: return .goal
@@ -17,7 +17,8 @@ enum Step: String, Hashable, CaseIterable {
         case .permissions: return .capture
         case .capture: return .detect
         case .detect: return .plan
-        case .plan: return nil
+        case .plan: return .consistencyFloor
+        case .consistencyFloor: return nil
         }
     }
 }

@@ -193,14 +193,26 @@ struct DashboardView: View {
                 if let session = appState.savedSession,
                    let floor = session.consistencyFloor {
                     let action = MicroActionGenerator.suggestedAction(for: floor, capabilities: floor.contextCapabilities)
-                    MicroActionView(floor: floor, action: action) { duration, reps in
-                        consistencyService.markFloorCompleted(
-                            actionId: action.id.uuidString,
-                            duration: duration,
-                            reps: reps
-                        )
-                        showMicroAction = false
-                    }
+                    MicroActionView(
+                        floor: floor, 
+                        action: action,
+                        onComplete: { duration, reps in
+                            consistencyService.markFloorCompleted(
+                                actionId: action.id.uuidString,
+                                duration: duration,
+                                reps: reps
+                            )
+                            showMicroAction = false
+                        },
+                        onExpandToWorkout: {
+                            // Navigate to plan view for full workout
+                            appState.goal = session.goal
+                            appState.context = session.context
+                            appState.gymProfile = GymProfile(equipments: session.equipments)
+                            appState.cachedWorkouts = session.workouts
+                            flow.goTo(.plan)
+                        }
+                    )
                 }
             }
         }
