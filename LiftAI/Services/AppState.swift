@@ -34,10 +34,25 @@ final class AppState: ObservableObject {
             goal: goal,
             context: context,
             equipments: equipments,
-            workouts: workouts
+            workouts: workouts,
+            consistencyFloor: nil // Will be set when user configures it
         )
         SavedSessionStore.shared.save(session)
         cachedWorkouts = workouts
+    }
+    
+    // Save consistency floor to current session
+    func saveConsistencyFloor(_ floor: ConsistencyFloor) {
+        guard let existing = SavedSessionStore.shared.load() else { return }
+        let updated = SavedSession(
+            savedAt: Date(),
+            goal: existing.goal,
+            context: existing.context,
+            equipments: existing.equipments,
+            workouts: existing.workouts,
+            consistencyFloor: floor
+        )
+        SavedSessionStore.shared.save(updated)
     }
 
     // Clear persisted session and in-memory state
@@ -64,7 +79,8 @@ final class AppState: ObservableObject {
                 goal: existing.goal,
                 context: existing.context,
                 equipments: equipments,
-                workouts: existing.workouts
+                workouts: existing.workouts,
+                consistencyFloor: existing.consistencyFloor
             )
             SavedSessionStore.shared.save(updated)
             cachedWorkouts = existing.workouts
