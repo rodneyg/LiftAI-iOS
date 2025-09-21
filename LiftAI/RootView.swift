@@ -41,6 +41,7 @@ struct RootView: View {
                 case .capture: CaptureView()
                 case .detect: DetectView()
                 case .plan: PlanView()
+                case .consistencyFloor: ConsistencyFloorSetupView()
                 @unknown default:
                     EmptyView()
                 }

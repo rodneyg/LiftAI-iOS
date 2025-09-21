@@ -13,4 +13,15 @@ struct SavedSession: Codable, Equatable {
     let context: TrainingContext
     let equipments: [Equipment]
     let workouts: [Workout]
+    let consistencyFloor: ConsistencyFloor?
+    
+    // Backward compatibility initializer
+    init(savedAt: Date, goal: Goal, context: TrainingContext, equipments: [Equipment], workouts: [Workout], consistencyFloor: ConsistencyFloor? = nil) {
+        self.savedAt = savedAt
+        self.goal = goal
+        self.context = context
+        self.equipments = equipments
+        self.workouts = workouts
+        self.consistencyFloor = consistencyFloor
+    }
 }

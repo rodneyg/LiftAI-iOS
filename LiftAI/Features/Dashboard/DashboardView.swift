@@ -10,8 +10,11 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var flow: FlowController
+    @StateObject private var consistencyService = ConsistencyService.shared
     @State private var showEquipEditor = false
     @State private var showSettings = false
+    @State private var showMicroAction = false
+    @State private var showFloorSetup = false
 
     var body: some View {
         ZStack {
@@ -129,6 +132,9 @@ struct DashboardView: View {
                     )
                     .padding(.horizontal, 16)
 
+                    // Consistency Floor section
+                    consistencyFloorCard(for: s)
+
                     Spacer()
                 } else {
                     // No session: CTA to begin flow
@@ -174,6 +180,41 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsSheet().environmentObject(appState)
+        }
+        .sheet(isPresented: $showFloorSetup) {
+            NavigationView {
+                ConsistencyFloorSetupView()
+                    .environmentObject(appState)
+                    .environmentObject(flow)
+            }
+        }
+        .sheet(isPresented: $showMicroAction) {
+            NavigationView {
+                if let session = appState.savedSession,
+                   let floor = session.consistencyFloor {
+                    let action = MicroActionGenerator.suggestedAction(for: floor, capabilities: floor.contextCapabilities)
+                    MicroActionView(
+                        floor: floor, 
+                        action: action,
+                        onComplete: { duration, reps in
+                            consistencyService.markFloorCompleted(
+                                actionId: action.id.uuidString,
+                                duration: duration,
+                                reps: reps
+                            )
+                            showMicroAction = false
+                        },
+                        onExpandToWorkout: {
+                            // Navigate to plan view for full workout
+                            appState.goal = session.goal
+                            appState.context = session.context
+                            appState.gymProfile = GymProfile(equipments: session.equipments)
+                            appState.cachedWorkouts = session.workouts
+                            flow.goTo(.plan)
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -221,6 +262,163 @@ struct DashboardView: View {
         case .rower: return "Rowing machine"
         default: return e.rawValue
         }
+    }
+    
+    // MARK: - Consistency Floor Card
+    
+    @ViewBuilder
+    private func consistencyFloorCard(for session: SavedSession) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack(alignment: .firstTextBaseline) {
+                Text("Today's Consistency Floor")
+                    .font(.headline)
+                Spacer()
+                if consistencyService.isTodayCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title3)
+                }
+            }
+            
+            if let floor = session.consistencyFloor {
+                if consistencyService.isTodayCompleted {
+                    // Completed state
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.title2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Floor completed!")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(.primary)
+                                Text(floor.displayText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                        
+                        // Stats
+                        statsRow()
+                    }
+                } else {
+                    // Action needed state
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(floor.displayText)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(.primary)
+                                Text("Your daily minimum")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                        
+                        // Action button
+                        Button {
+                            showMicroAction = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text("Do it now")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.liftAccent)
+                            .clipShape(Capsule())
+                        }
+                        
+                        // Stats
+                        statsRow()
+                    }
+                }
+            } else {
+                // No floor set up
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Stay consistent with a daily minimum action")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    Button {
+                        showFloorSetup = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle")
+                            Text("Set up floor")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.liftAccent)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemGray6))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.systemBackground).opacity(0.98))
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        )
+        .padding(.horizontal, 16)
+    }
+    
+    @ViewBuilder
+    private func statsRow() -> some View {
+        HStack(spacing: 12) {
+            StatChip(
+                label: "7d",
+                value: "\(Int(consistencyService.stats.last7Days * 100))%",
+                icon: "calendar"
+            )
+            StatChip(
+                label: "30d",
+                value: "\(Int(consistencyService.stats.last30Days * 100))%",
+                icon: "calendar"
+            )
+            StatChip(
+                label: "Streak",
+                value: "\(consistencyService.stats.currentStreak)",
+                icon: "flame.fill"
+            )
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+private struct StatChip: View {
+    let label: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                Text(label)
+                    .font(.caption2.weight(.medium))
+            }
+            .foregroundStyle(.secondary)
+            
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
