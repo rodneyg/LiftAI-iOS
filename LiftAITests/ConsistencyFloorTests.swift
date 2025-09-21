@@ -108,4 +108,25 @@ final class ConsistencyFloorTests: XCTestCase {
         XCTAssertTrue(gymCapabilities.hasSpace)
         XCTAssertFalse(gymCapabilities.canWalkOutside)
     }
+    
+    func testAtomicHabitsStreakRules() {
+        // Test that the consistency stats distinguish between consistency scores (percentages)
+        // and streaks (using "never miss twice" rule from Atomic Habits)
+        let stats = ConsistencyStats(
+            last7Days: 0.71, // 5 out of 7 days = 71% consistency
+            last30Days: 0.85, // Overall consistency percentage
+            last90Days: 0.90, // Overall consistency percentage
+            currentStreak: 5, // Current streak allowing one miss
+            longestStreak: 15 // Longest streak achieved
+        )
+        
+        // Consistency scores are percentage-based
+        XCTAssertEqual(stats.last7Days, 0.71, accuracy: 0.01)
+        XCTAssertEqual(stats.last30Days, 0.85, accuracy: 0.01)
+        XCTAssertEqual(stats.last90Days, 0.90, accuracy: 0.01)
+        
+        // Streaks follow "never miss twice" rule
+        XCTAssertEqual(stats.currentStreak, 5)
+        XCTAssertEqual(stats.longestStreak, 15)
+    }
 }

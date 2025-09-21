@@ -70,12 +70,14 @@ struct DailyFloorStatus: Codable, Equatable {
 }
 
 /// Rolling statistics for consistency tracking
+/// Note: Consistency scores (percentages) measure overall adherence, 
+/// while streaks track consecutive achievement using "never miss twice" rule from Atomic Habits
 struct ConsistencyStats: Codable, Equatable {
-    let last7Days: Double // percentage 0.0-1.0
-    let last30Days: Double
-    let last90Days: Double
-    let currentStreak: Int // consecutive days
-    let longestStreak: Int
+    let last7Days: Double // consistency percentage 0.0-1.0
+    let last30Days: Double // consistency percentage 0.0-1.0
+    let last90Days: Double // consistency percentage 0.0-1.0
+    let currentStreak: Int // consecutive days using "never miss twice" rule
+    let longestStreak: Int // longest streak achieved using "never miss twice" rule
     
     static let empty = ConsistencyStats(
         last7Days: 0.0,

@@ -9,6 +9,9 @@ import Foundation
 import Combine
 
 /// Service for managing consistency floor tracking and statistics
+/// Implements Atomic Habits principles:
+/// - Consistency scores track overall adherence percentage
+/// - Streaks use "never miss twice" rule: missing one day doesn't break streak, but two consecutive misses do
 final class ConsistencyService: ObservableObject {
     static let shared = ConsistencyService()
     
@@ -114,24 +117,54 @@ final class ConsistencyService: ObservableObject {
         var currentStreak = 0
         var longestStreak = 0
         var tempStreak = 0
+        var consecutiveMisses = 0
         
-        // Calculate current streak (going backwards from today)
+        // Calculate current streak using Atomic Habits "never miss twice" rule
+        // Missing one day doesn't break the streak, but missing two consecutive days does
         var checkDate = date
-        while let status = history[createDateKey(for: checkDate)], status.met {
-            currentStreak += 1
+        var allowedMiss = true // Can miss one day without breaking streak
+        
+        while true {
+            let status = history[createDateKey(for: checkDate)]
+            
+            if let status = status, status.met {
+                // Day completed - add to streak and reset miss allowance
+                currentStreak += 1
+                allowedMiss = true
+            } else {
+                // Day missed
+                if allowedMiss {
+                    // First miss - don't break streak but mark as used
+                    allowedMiss = false
+                } else {
+                    // Second consecutive miss - break streak
+                    break
+                }
+            }
+            
             guard let previousDate = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
             checkDate = previousDate
         }
         
-        // Calculate longest streak by checking all history
+        // Calculate longest streak using the same "never miss twice" rule
         let sortedDates = history.keys.sorted { $0 < $1 }
+        tempStreak = 0
+        consecutiveMisses = 0
         
         for dateKey in sortedDates {
             if let status = history[dateKey], status.met {
+                // Day completed
                 tempStreak += 1
+                consecutiveMisses = 0
                 longestStreak = max(longestStreak, tempStreak)
             } else {
-                tempStreak = 0
+                // Day missed
+                consecutiveMisses += 1
+                if consecutiveMisses >= 2 {
+                    // Two consecutive misses - reset streak
+                    tempStreak = 0
+                    consecutiveMisses = 0
+                }
             }
         }
         
